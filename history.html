@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disaster History — Vulnerability Mapping</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; overflow:hidden; font-family:'IBM Plex Sans', sans-serif; background:#f5f2ed; color:#1a1a1a; }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    display:flex; justify-content:space-between; align-items:center;
+    background:#fff; border-bottom:1px solid #e8e2d8;
+    padding:0 24px; height:58px; flex-shrink:0; gap:16px;
+  }
+  .brand { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .brand-icon {
+    width:34px; height:34px; background:#D32F2F; border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:16px; flex-shrink:0;
+  }
+  .brand-name { font-family:'Playfair Display',serif; font-size:16px; font-weight:700; color:#1a1a1a; white-space:nowrap; }
+  .brand-sub { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px; color:#D32F2F; text-transform:uppercase; margin-top:1px; }
+
+  /* City selector in topbar */
+  .city-selector-wrap { position:relative; display:flex; align-items:center; }
+  .city-selector-wrap .pin { position:absolute; left:10px; color:#D32F2F; font-size:12px; pointer-events:none; }
+  #citySelectTop {
+    font-family:'IBM Plex Sans',sans-serif; font-size:13px; color:#1a1a1a;
+    background:#faf8f4; border:1px solid #e8e2d8; border-radius:6px;
+    padding:7px 32px 7px 28px; cursor:pointer; outline:none; appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 10px center;
+    transition:border-color 0.2s;
+  }
+  #citySelectTop:hover { border-color:#D32F2F; }
+
+  /* Emergency services */
+  .emergency-wrap { display:flex; flex-direction:column; }
+  .emergency-label { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1.5px; color:#bbb; text-transform:uppercase; margin-bottom:4px; }
+  .emergency { display:flex; gap:5px; }
+  .emergency button {
+    width:36px; height:36px; border-radius:7px; border:1px solid #e8e2d8;
+    background:#faf8f4; font-size:16px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition:all 0.18s;
+  }
+  .emergency button:hover { background:#FFF5F5; border-color:#FFCDD2; transform:translateY(-1px); }
+
+  /* Type filters */
+  .type-filter { display:flex; gap:5px; align-items:center; }
+  .tf-btn {
+    font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500;
+    padding:5px 12px; border-radius:20px; border:1px solid #e8e2d8;
+    background:#faf8f4; cursor:pointer; color:#666; transition:all 0.2s;
+  }
+  .tf-btn:hover { border-color:#D32F2F; color:#D32F2F; }
+  .tf-btn.active { background:#D32F2F; border-color:#D32F2F; color:#fff; }
+
+  /* ── LAYOUT ── */
+  .body-wrap { display:flex; height:calc(100vh - 58px); overflow:hidden; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width:210px; flex-shrink:0; background:#fff; border-right:1px solid #e8e2d8;
+    display:flex; flex-direction:column; padding:16px 0; overflow-y:auto;
+  }
+  .sidebar-section {
+    font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:2px;
+    color:#ccc; text-transform:uppercase; padding:10px 20px 4px;
+  }
+  .sidebar a {
+    display:flex; align-items:center; gap:10px; width:100%;
+    background:none; border:none; padding:11px 20px;
+    font-family:'IBM Plex Sans',sans-serif; font-size:13px; font-weight:400;
+    color:#555; text-align:left; cursor:pointer; border-left:3px solid transparent;
+    transition:all 0.18s; text-decoration:none;
+  }
+  .sidebar a:hover { background:#faf8f4; color:#1a1a1a; }
+  .sidebar a.active { background:#FFF5F5; color:#D32F2F; border-left-color:#D32F2F; font-weight:600; }
+  .sidebar-icon { font-size:15px; width:18px; text-align:center; }
+  .sidebar-divider { height:1px; background:#f0ebe0; margin:8px 16px; }
+  .live-indicator {
+    display:flex; align-items:center; gap:7px;
+    margin-top:auto; padding:14px 20px; border-top:1px solid #f0ebe0;
+  }
+  .live-dot { width:7px; height:7px; background:#D32F2F; border-radius:50%; animation:pulse 1.2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }
+  .live-text { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#D32F2F; letter-spacing:1px; }
+
+  /* ── CONTENT AREA ── */
+  .content-wrap { flex:1; overflow-y:auto; padding:0; display:flex; flex-direction:column; }
+  .content-wrap::-webkit-scrollbar { width:5px; }
+  .content-wrap::-webkit-scrollbar-track { background:#f5f2ed; }
+  .content-wrap::-webkit-scrollbar-thumb { background:#e0d8cc; border-radius:4px; }
+
+  /* ── PAGE HEADER — cream background like emergency.html ── */
+  .page-header {
+    background:#f5f2ed; border-bottom:1px solid #e8e2d8;
+    padding:24px 28px 22px;
+  }
+  .page-eyebrow {
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:2.5px;
+    color:#D32F2F; text-transform:uppercase; margin-bottom:8px;
+  }
+  .page-title {
+    font-family:'Playfair Display',serif; font-size:34px; font-weight:700; color:#1a1a1a; line-height:1.1;
+  }
+  .page-title em { font-style:italic; color:#D32F2F; }
+  .page-sub { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#aaa; margin-top:8px; letter-spacing:0.3px; }
+
+  /* ── SCROLLABLE INNER ── */
+  .content-inner { padding:20px 28px; display:flex; flex-direction:column; gap:16px; flex:1; overflow-y:auto; }
+  .content-inner::-webkit-scrollbar { width:5px; }
+  .content-inner::-webkit-scrollbar-track { background:#f5f2ed; }
+  .content-inner::-webkit-scrollbar-thumb { background:#e0d8cc; border-radius:4px; }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner {
+    background:#FFF5F5; border:1px solid #FFCDD2; border-left:3px solid #D32F2F;
+    border-radius:8px; padding:12px 16px; display:flex; align-items:center; gap:12px;
+  }
+  .alert-dot { width:8px; height:8px; background:#D32F2F; border-radius:50%; animation:pulse 1.5s infinite; flex-shrink:0; }
+  .alert-text { font-size:13px; color:#B71C1C; font-weight:600; }
+  .alert-sub { font-size:11px; color:#E57373; font-family:'IBM Plex Mono',monospace; margin-top:2px; }
+
+  /* ── CITY TABS ── */
+  .city-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+  .city-tab {
+    display:flex; align-items:center; gap:6px; padding:7px 14px;
+    border-radius:20px; font-size:12px; font-weight:500;
+    border:1px solid #e8e2d8; background:#fff; color:#666;
+    cursor:pointer; transition:all 0.18s; font-family:'IBM Plex Sans',sans-serif;
+  }
+  .city-tab:hover { border-color:#D32F2F; color:#D32F2F; }
+  .city-tab.active { background:#FFF5F5; border-color:#D32F2F; color:#D32F2F; font-weight:600; }
+  .city-tab .cdot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+  /* ── STAT CARDS — thick colored top border exactly like emergency.html ── */
+  .stat-row { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .stat-card {
+    background:#fff; border:1px solid #e8e2d8; border-radius:10px;
+    padding:18px 18px 16px; position:relative; overflow:hidden;
+    border-top-width:4px;
+  }
+  .stat-card.red    { border-top-color:#D32F2F; }
+  .stat-card.orange { border-top-color:#E65100; }
+  .stat-card.amber  { border-top-color:#F9A825; }
+  .stat-card.green  { border-top-color:#2E7D32; }
+  .stat-label {
+    font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1.8px;
+    color:#aaa; text-transform:uppercase; margin-bottom:10px;
+  }
+  .stat-value { font-size:30px; font-weight:700; line-height:1; color:#1a1a1a; }
+  .stat-value.red    { color:#D32F2F; }
+  .stat-value.orange { color:#E65100; }
+  .stat-value.amber  { color:#F9A825; }
+  .stat-value.green  { color:#2E7D32; }
+  .stat-sub-row { display:flex; align-items:center; gap:6px; margin-top:8px; }
+  .stat-badge {
+    font-family:'IBM Plex Mono',monospace; font-size:9px; padding:2px 7px;
+    border-radius:20px; font-weight:500;
+  }
+  .stat-badge.red    { background:#FFEBEE; color:#C62828; }
+  .stat-badge.orange { background:#FBE9E7; color:#BF360C; }
+  .stat-badge.amber  { background:#FFF8E1; color:#E65100; }
+  .stat-badge.green  { background:#E8F5E9; color:#1B5E20; }
+  .stat-desc { font-size:11px; color:#aaa; font-family:'IBM Plex Mono',monospace; }
+
+  /* ── CARDS — top accent border on all cards ── */
+  .card {
+    background:#fff; border:1px solid #e8e2d8; border-radius:10px;
+    padding:18px 20px; border-top-width:3px; border-top-color:#D32F2F;
+  }
+  .card.blue   { border-top-color:#1565C0; }
+  .card.purple { border-top-color:#6A1B9A; }
+  .card.orange { border-top-color:#E65100; }
+  .card.green  { border-top-color:#2E7D32; }
+  .card.amber  { border-top-color:#F9A825; }
+  .card.red    { border-top-color:#D32F2F; }
+  .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .card-title { font-size:13px; font-weight:600; color:#1a1a1a; display:flex; align-items:center; gap:8px; }
+  .card-title i { color:#D32F2F; font-size:13px; }
+  .card-badge {
+    font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:1px;
+    background:#faf8f4; color:#aaa; padding:4px 9px; border-radius:4px; border:1px solid #e8e2d8;
+  }
+
+  /* ── TWO / THREE COL ── */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .three-col { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .chart-wrap { position:relative; width:100%; }
+
+  /* ── TYPE BREAKDOWN ── */
+  .dtype-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .dtype-label { font-size:12px; color:#555; width:85px; flex-shrink:0; }
+  .dtype-bar-bg { flex:1; background:#f5f2ed; border-radius:4px; height:8px; overflow:hidden; }
+  .dtype-bar { height:100%; border-radius:4px; transition:width 0.5s; }
+  .dtype-count { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#aaa; width:28px; text-align:right; flex-shrink:0; }
+
+  /* ── HEATMAP ── */
+  .heatmap-grid { display:grid; grid-template-columns:56px repeat(12,1fr); gap:3px; }
+  .hm-label { color:#aaa; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; font-size:10px; font-family:'IBM Plex Mono',monospace; }
+  .hm-header { color:#aaa; text-align:center; padding:2px 0; font-size:9px; font-family:'IBM Plex Mono',monospace; }
+  .hm-cell { height:22px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; font-family:'IBM Plex Mono',monospace; }
+  .hm-0 { background:#f5f2ed; color:transparent; }
+  .hm-1 { background:#FFEBEE; color:#E57373; }
+  .hm-2 { background:#FFCDD2; color:#E53935; }
+  .hm-3 { background:#EF9A9A; color:#C62828; }
+  .hm-4 { background:#E57373; color:#fff; }
+  .hm-5 { background:#D32F2F; color:#fff; }
+  .hm-legend { display:flex; gap:8px; align-items:center; margin-top:12px; font-size:10px; color:#aaa; font-family:'IBM Plex Mono',monospace; }
+
+  /* ── CITY TABLE ── */
+  .city-table { width:100%; border-collapse:collapse; font-size:12px; }
+  .city-table th { text-align:left; padding:8px 10px; color:#aaa; font-weight:600; font-size:9px; letter-spacing:1.5px; text-transform:uppercase; font-family:'IBM Plex Mono',monospace; border-bottom:1px solid #e8e2d8; }
+  .city-table td { padding:10px 10px; border-bottom:1px solid #f5f2ed; color:#333; vertical-align:middle; }
+  .city-table tr:last-child td { border-bottom:none; }
+  .city-table tr:hover td { background:#faf8f4; }
+  .vuln-bar { display:inline-block; height:6px; border-radius:3px; vertical-align:middle; margin-right:6px; }
+
+  /* ── SEVERITY BADGES ── */
+  .severity-badge { font-family:'IBM Plex Mono',monospace; font-size:10px; padding:2px 8px; border-radius:4px; font-weight:500; }
+  .severity-badge.high   { background:#FFEBEE; color:#C62828; }
+  .severity-badge.medium { background:#FFF8E1; color:#E65100; }
+  .severity-badge.low    { background:#E8F5E9; color:#2E7D32; }
+
+  /* ── TIMELINE ── */
+  .timeline { display:flex; flex-direction:column; }
+  .tl-item { display:flex; gap:14px; padding:12px 0; border-bottom:1px solid #f5f2ed; }
+  .tl-item:last-child { border-bottom:none; }
+  .tl-dot-col { display:flex; flex-direction:column; align-items:center; padding-top:3px; }
+  .tl-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .tl-dot.high   { background:#D32F2F; }
+  .tl-dot.medium { background:#F57F17; }
+  .tl-dot.low    { background:#43A047; }
+  .tl-line { width:1px; background:#e8e2d8; flex:1; margin-top:4px; }
+  .tl-body { flex:1; }
+  .tl-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:2px; }
+  .tl-title { font-size:13px; font-weight:600; color:#1a1a1a; }
+  .tl-date  { font-family:'IBM Plex Mono',monospace; font-size:11px; color:#aaa; }
+  .tl-city  { font-size:11px; color:#999; margin-bottom:5px; font-family:'IBM Plex Mono',monospace; }
+  .tl-meta  { display:flex; gap:6px; flex-wrap:wrap; }
+  .tl-tag   { font-family:'IBM Plex Mono',monospace; font-size:10px; padding:2px 7px; border-radius:4px; }
+  .tl-tag.flood      { background:#E3F2FD; color:#1565C0; }
+  .tl-tag.fire       { background:#FBE9E7; color:#BF360C; }
+  .tl-tag.cyclone    { background:#F3E5F5; color:#6A1B9A; }
+  .tl-tag.earthquake { background:#FFF8E1; color:#E65100; }
+  .tl-tag.heatwave   { background:#FFF3E0; color:#E65100; }
+  .tl-tag.disease    { background:#E8F5E9; color:#1B5E20; }
+  .empty-state { text-align:center; padding:32px 0; color:#aaa; font-size:13px; font-family:'IBM Plex Mono',monospace; }
+  .empty-state i { font-size:28px; margin-bottom:8px; display:block; color:#e0d8cc; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">⚠</div>
+    <div>
+      <div class="brand-name">Vulnerability Mapping</div>
+      <div class="brand-sub">Disaster Preparedness Platform</div>
+    </div>
+  </div>
+
+  <div class="city-selector-wrap">
+    <span class="pin">📍</span>
+    <select id="citySelectTop" onchange="onTopCityChange(this.value)">
+      <option value="all">All Cities</option>
+      <option value="Hyderabad">Hyderabad</option>
+      <option value="Delhi">Delhi</option>
+      <option value="Mumbai">Mumbai</option>
+      <option value="Chennai">Chennai</option>
+      <option value="J & K">Jammu &amp; Kashmir</option>
+    </select>
+  </div>
+
+  <div class="emergency-wrap">
+    <div class="emergency-label">Emergency Services</div>
+    <div class="emergency">
+      <button title="Ambulance">🚑</button>
+      <button title="Police">🚓</button>
+      <button title="Fire Brigade">🔥</button>
+      <button title="Nearest Shelter">🏠</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- BODY -->
+<div class="body-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Navigation</div>
+    <a href="index.html"><span class="sidebar-icon">🗺</span>Dashboard</a>
+    <a href="ai.html"><span class="sidebar-icon">🤖</span>AI Intelligence</a>
+    <a href="emergency.html"><span class="sidebar-icon">🚨</span>Emergency Response</a>
+    <a href="analytics.html"><span class="sidebar-icon">📊</span>Risk Analytics</a>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">Records</div>
+    <a href="history.html" class="active"><span class="sidebar-icon">📜</span>Disaster History</a>
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span class="live-text">SYSTEMS LIVE</span>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content-wrap">
+
+    <!-- PAGE HEADER matching emergency.html style -->
+    <div class="page-header">
+      <div class="page-eyebrow">Disaster History</div>
+      <div class="page-title">Historical <em>Records</em></div>
+      <div class="page-sub">Urban slum vulnerability analysis · Disaster preparedness platform · 2000–2026</div>
+    </div>
+
+    <div class="content-inner">
+
+      <!-- ALERT BANNER (live, updated by live_alerts.js) -->
+      <div class="alert-banner" id="alertCard">
+        <div class="alert-dot"></div>
+        <div>
+          <div class="alert-text" id="alertTitle">No active alerts yet — checking live feeds…</div>
+          <div class="alert-sub" id="alertMeta">Connecting to backend…</div>
+        </div>
+      </div>
+
+      <!-- CITY TABS -->
+      <div class="city-tabs" id="cityTabs">
+        <button class="city-tab active" onclick="setCity('all',this)"><span class="cdot" style="background:#D32F2F"></span>All Cities</button>
+        <button class="city-tab" onclick="setCity('Mumbai',this)"><span class="cdot" style="background:#E53935"></span>Mumbai</button>
+        <button class="city-tab" onclick="setCity('Delhi',this)"><span class="cdot" style="background:#F57F17"></span>Delhi</button>
+        <button class="city-tab" onclick="setCity('Hyderabad',this)"><span class="cdot" style="background:#1565C0"></span>Hyderabad</button>
+        <button class="city-tab" onclick="setCity('Chennai',this)"><span class="cdot" style="background:#6A1B9A"></span>Chennai</button>
+        <button class="city-tab" onclick="setCity('J & K',this)"><span class="cdot" style="background:#2E7D32"></span>Jammu &amp; Kashmir</button>
+      </div>
+
+      <!-- STAT CARDS — colored top borders like emergency.html -->
+      <div class="stat-row">
+        <div class="stat-card red">
+          <div class="stat-label">Total Events Recorded</div>
+          <div class="stat-value red" id="statTotal">—</div>
+          <div class="stat-sub-row">
+            <span class="stat-badge red" id="statBadge1">CRITICAL</span>
+            <span class="stat-desc" id="statTotalSub">—</span>
+          </div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-label">High Severity Events</div>
+          <div class="stat-value orange" id="statHigh">—</div>
+          <div class="stat-sub-row">
+            <span class="stat-badge orange" id="statBadge2">ACTIVE</span>
+            <span class="stat-desc" id="statHighSub">—</span>
+          </div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">Lives Affected (Est.)</div>
+          <div class="stat-value amber" id="statLives">—</div>
+          <div class="stat-sub-row">
+            <span class="stat-badge amber">DISPLACED</span>
+            <span class="stat-desc" id="statLivesSub">—</span>
+          </div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Avg Recovery Days</div>
+          <div class="stat-value green" id="statRecovery">—</div>
+          <div class="stat-sub-row">
+            <span class="stat-badge green">READY</span>
+            <span class="stat-desc" id="statRecoverySub">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CHARTS ROW -->
+      <div class="two-col">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-chart-line"></i>Disaster events by year</div>
+            <div class="card-badge" id="yearChartLabel">All Cities</div>
+          </div>
+          <div class="chart-wrap" style="height:200px"><canvas id="yearChart"></canvas></div>
+        </div>
+        <div class="card amber">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-chart-bar"></i>Disaster type breakdown</div>
+            <div class="card-badge" id="typeChartLabel">All cities</div>
+          </div>
+          <div id="typeBreakdown" style="margin-top:4px"></div>
+        </div>
+      </div>
+
+      <!-- HEATMAP + CITY TABLE -->
+      <div class="two-col">
+        <div class="card orange">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-fire"></i>Disaster frequency heatmap</div>
+            <div class="card-badge">City × Month</div>
+          </div>
+          <div class="heatmap-grid" id="heatmapGrid"></div>
+          <div class="hm-legend">
+            <span>Low</span>
+            <div style="width:12px;height:12px;background:#FFEBEE;border-radius:2px;border:1px solid #e8e2d8"></div>
+            <div style="width:12px;height:12px;background:#FFCDD2;border-radius:2px"></div>
+            <div style="width:12px;height:12px;background:#EF9A9A;border-radius:2px"></div>
+            <div style="width:12px;height:12px;background:#E57373;border-radius:2px"></div>
+            <div style="width:12px;height:12px;background:#D32F2F;border-radius:2px"></div>
+            <span>High</span>
+          </div>
+        </div>
+        <div class="card blue">
+          <div class="card-header">
+            <div class="card-title"><i class="fa-solid fa-city"></i>City vulnerability comparison</div>
+            <div class="card-badge">Composite Score</div>
+          </div>
+          <table class="city-table">
+            <thead><tr><th>City</th><th>Events</th><th>Severity</th><th>Vuln Score</th></tr></thead>
+            <tbody id="cityTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- TIMELINE -->
+      <div class="card purple">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-timeline"></i>Disaster timeline</div>
+          <div class="card-badge" id="tlCount">—</div>
+        </div>
+        <div class="timeline" id="timelineContainer"></div>
+      </div>
+
+      <!-- LIVE ALERTS LOG (from SQLite backend, via live_alerts.js) -->
+      <div class="card red">
+        <div class="card-header">
+          <div class="card-title"><i class="fa-solid fa-tower-broadcast"></i>Live alerts log</div>
+          <div class="card-badge" id="liveAlertCount">—</div>
+        </div>
+        <div class="timeline" id="liveAlertsContainer">
+          <div class="empty-state"><i class="fa-solid fa-satellite-dish"></i>Connecting to live alert feed…</div>
+        </div>
+      </div>
+
+      <!-- BOTTOM CHARTS -->
+      <div class="three-col">
+        <div class="card blue">
+          <div class="card-header"><div class="card-title"><i class="fa-solid fa-droplet"></i>Flood risk trend</div></div>
+          <div class="chart-wrap" style="height:140px"><canvas id="floodChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fa-solid fa-fire-flame-curved"></i>Fire incidents</div></div>
+          <div class="chart-wrap" style="height:140px"><canvas id="fireChart"></canvas></div>
+        </div>
+        <div class="card purple">
+          <div class="card-header"><div class="card-title"><i class="fa-solid fa-wind"></i>Cyclone season</div></div>
+          <div class="chart-wrap" style="height:140px"><canvas id="cycloneChart"></canvas></div>
+        </div>
+      </div>
+
+    </div><!-- /content-inner -->
+  </div><!-- /content-wrap -->
+</div><!-- /body-wrap -->
+
+<script>
+const DISASTERS = [
+  { date:'Jun 2026', title:'Flash Flood — Dharavi',         city:'Mumbai',    type:'flood',      severity:'high',   affected:'12,000',  year:2026 },
+  { date:'Apr 2026', title:'Slum Fire — Govandi',           city:'Mumbai',    type:'fire',       severity:'high',   affected:'3,400',   year:2026 },
+  { date:'Dec 2025', title:'Cyclone Fengal aftermath',      city:'Chennai',   type:'cyclone',    severity:'high',   affected:'85,000',  year:2025 },
+  { date:'Oct 2025', title:'Urban flooding — Ambattur',     city:'Chennai',   type:'flood',      severity:'medium', affected:'22,000',  year:2025 },
+  { date:'Aug 2025', title:'Monsoon floods — Charminar',    city:'Hyderabad', type:'flood',      severity:'medium', affected:'9,000',   year:2025 },
+  { date:'Jun 2025', title:'Heatwave — East Delhi slums',   city:'Delhi',     type:'heatwave',   severity:'high',   affected:'40,000',  year:2025 },
+  { date:'Mar 2025', title:'Slum fire — Sangam Vihar',      city:'Delhi',     type:'fire',       severity:'medium', affected:'1,800',   year:2025 },
+  { date:'Feb 2025', title:'Flash floods — Jammu lowlands', city:'J & K',     type:'flood',      severity:'low',    affected:'4,200',   year:2025 },
+  { date:'Sep 2024', title:'Cyclone Asna',                  city:'Mumbai',    type:'cyclone',    severity:'high',   affected:'110,000', year:2024 },
+  { date:'Jul 2024', title:'Musi River overflow',           city:'Hyderabad', type:'flood',      severity:'high',   affected:'31,000',  year:2024 },
+  { date:'May 2024', title:'Heatwave — Dharavi',            city:'Mumbai',    type:'heatwave',   severity:'medium', affected:'28,000',  year:2024 },
+  { date:'Nov 2023', title:'Cyclone Michaung',              city:'Chennai',   type:'cyclone',    severity:'high',   affected:'200,000', year:2023 },
+  { date:'Aug 2023', title:'Urban flood — Kukatpally',      city:'Hyderabad', type:'flood',      severity:'medium', affected:'15,000',  year:2023 },
+  { date:'Jun 2023', title:'Slum fire — Dharavi',           city:'Mumbai',    type:'fire',       severity:'high',   affected:'5,600',   year:2023 },
+  { date:'Apr 2022', title:'Earthquake tremors — Srinagar', city:'J & K',     type:'earthquake', severity:'medium', affected:'6,000',   year:2022 },
+  { date:'Jul 2022', title:'Landslide — Ramban district',   city:'J & K',     type:'flood',      severity:'high',   affected:'8,500',   year:2022 },
+  { date:'Oct 2021', title:'Cyclone Gulab — coastal slums', city:'Chennai',   type:'cyclone',    severity:'medium', affected:'35,000',  year:2021 },
+  { date:'Aug 2021', title:'Disease outbreak — Govandi',    city:'Mumbai',    type:'disease',    severity:'medium', affected:'11,200',  year:2021 },
+  { date:'Jun 2020', title:'COVID-19 — Dharavi cluster',    city:'Mumbai',    type:'disease',    severity:'high',   affected:'120,000', year:2020 },
+  { date:'Sep 2020', title:'Musi overflow — Old City',      city:'Hyderabad', type:'flood',      severity:'high',   affected:'27,000',  year:2020 },
+];
+
+const CITY_META = {
+  'all':      { total:247, high:89,  lives:'4.2M', recovery:42 },
+  'Mumbai':   { total:74,  high:31,  lives:'1.8M', recovery:38, vuln:{ score:8.4, sev:'high',   bar:72, color:'#D32F2F' } },
+  'Chennai':  { total:58,  high:24,  lives:'1.1M', recovery:45, vuln:{ score:7.6, sev:'high',   bar:60, color:'#E53935' } },
+  'Delhi':    { total:52,  high:18,  lives:'780K', recovery:40, vuln:{ score:6.9, sev:'medium', bar:52, color:'#F57F17' } },
+  'Hyderabad':{ total:43,  high:15,  lives:'620K', recovery:44, vuln:{ score:6.2, sev:'medium', bar:46, color:'#F57F17' } },
+  'J & K':    { total:20,  high:7,   lives:'280K', recovery:55, vuln:{ score:4.1, sev:'low',    bar:32, color:'#43A047' } },
+};
+
+const TYPE_DATA = {
+  'all':      [{l:'Floods',w:78,bg:'#1565C0',n:98},{l:'Fires',w:42,bg:'#D32F2F',n:52},{l:'Cyclones',w:30,bg:'#6A1B9A',n:38},{l:'Heatwaves',w:23,bg:'#E65100',n:29},{l:'Earthquakes',w:14,bg:'#4E342E',n:18},{l:'Disease',w:9,bg:'#2E7D32',n:12}],
+  'Mumbai':   [{l:'Floods',w:70,bg:'#1565C0',n:28},{l:'Fires',w:55,bg:'#D32F2F',n:22},{l:'Cyclones',w:30,bg:'#6A1B9A',n:12},{l:'Heatwaves',w:20,bg:'#E65100',n:8},{l:'Disease',w:10,bg:'#2E7D32',n:4}],
+  'Delhi':    [{l:'Heatwaves',w:75,bg:'#E65100',n:24},{l:'Floods',w:55,bg:'#1565C0',n:18},{l:'Fires',w:30,bg:'#D32F2F',n:10}],
+  'Hyderabad':[{l:'Floods',w:85,bg:'#1565C0',n:30},{l:'Fires',w:28,bg:'#D32F2F',n:10},{l:'Disease',w:8,bg:'#2E7D32',n:3}],
+  'Chennai':  [{l:'Cyclones',w:80,bg:'#6A1B9A',n:28},{l:'Floods',w:65,bg:'#1565C0',n:22},{l:'Disease',w:20,bg:'#2E7D32',n:7},{l:'Heatwaves',w:10,bg:'#E65100',n:4}],
+  'J & K':    [{l:'Floods',w:70,bg:'#1565C0',n:10},{l:'Earthquakes',w:50,bg:'#4E342E',n:7},{l:'Fires',w:20,bg:'#D32F2F',n:3}],
+};
+
+const YEAR_DATA = {
+  'all':      { labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'], data:[12,14,16,18,24,20,22,26,28,22,10] },
+  'Mumbai':   { labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'], data:[6,7,8,9,11,8,10,12,13,9,4] },
+  'Delhi':    { labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'], data:[4,5,5,6,7,6,6,8,9,7,2] },
+  'Hyderabad':{ labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'], data:[3,4,4,5,6,5,5,7,8,6,2] },
+  'Chennai':  { labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'], data:[4,4,5,6,7,6,7,8,9,6,2] },
+  'J & K':    { labels:['2016','2017','2018','2019','2020','2021','2022','2023','2024','2025','2026'], data:[1,2,2,2,3,2,3,3,4,3,0] },
+};
+
+const HEATMAP = {
+  'all':      [[1,1,0,1,2,4,5,5,4,3,2,1],[1,0,1,2,3,3,3,4,5,4,3,2],[0,0,0,1,3,4,3,2,2,2,1,0],[0,0,0,1,2,3,4,4,3,2,1,0],[1,2,2,1,0,0,0,0,1,2,3,2]],
+  'Mumbai':   [[2,1,0,1,2,5,5,5,4,3,2,1],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]],
+  'Delhi':    [[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,3,4,3,2,2,2,1,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]],
+  'Hyderabad':[[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,1,2,3,4,4,3,2,1,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0]],
+  'Chennai':  [[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[1,0,1,2,3,3,3,4,5,4,3,2],[0,0,0,0,0,0,0,0,0,0,0,0]],
+  'J & K':    [[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0,0,0,0],[1,2,2,1,0,0,0,0,1,2,3,2]],
+};
+
+const CITY_TABLE_ALL = [
+  { name:'Mumbai',    events:74, sev:'high',   score:8.4, bar:72, color:'#D32F2F' },
+  { name:'Chennai',   events:58, sev:'high',   score:7.6, bar:60, color:'#E53935' },
+  { name:'Delhi',     events:52, sev:'medium', score:6.9, bar:52, color:'#F57F17' },
+  { name:'Hyderabad', events:43, sev:'medium', score:6.2, bar:46, color:'#F57F17' },
+  { name:'J & K',     events:20, sev:'low',    score:4.1, bar:32, color:'#43A047' },
+];
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const HM_CITIES = ['Mumbai','Chennai','Delhi','Hydbd','J & K'];
+
+let activeCity = 'all', activeType = 'all', yearChartInst;
+
+function setCity(city, el) {
+  activeCity = city;
+  document.querySelectorAll('.city-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const topSelect = document.getElementById('citySelectTop');
+  if (topSelect) topSelect.value = city;
+  renderAll();
+}
+function onTopCityChange(city) {
+  activeCity = city;
+  document.querySelectorAll('.city-tab').forEach(t => {
+    const isMatch = (city === 'all' && t.textContent.includes('All Cities')) ||
+                    t.textContent.trim().startsWith(city === 'J & K' ? 'Jammu' : city);
+    t.classList.toggle('active', isMatch);
+  });
+  renderAll();
+}
+function setType(type, el) {
+  activeType = type;
+  document.querySelectorAll('.tf-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderTimeline();
+}
+function renderAll() { renderStats(); renderYearChart(); renderTypeBreakdown(); renderHeatmap(); renderCityTable(); renderTimeline(); }
+
+function renderStats() {
+  const m = CITY_META[activeCity];
+  const label = activeCity==='all' ? 'Across 5 cities · 2000–2026' : activeCity+' · 2000–2026';
+  document.getElementById('statTotal').textContent = m.total;
+  document.getElementById('statTotalSub').textContent = label;
+  document.getElementById('statHigh').textContent = m.high;
+  document.getElementById('statHighSub').textContent = Math.round(m.high/m.total*100)+'% of total';
+  document.getElementById('statLives').textContent = m.lives;
+  document.getElementById('statLivesSub').textContent = 'Slum population';
+  document.getElementById('statRecovery').textContent = m.recovery;
+  document.getElementById('statRecoverySub').textContent = 'Post-disaster';
+}
+
+function renderYearChart() {
+  const yd = YEAR_DATA[activeCity];
+  document.getElementById('yearChartLabel').textContent = activeCity==='all'?'All Cities':activeCity;
+  if (yearChartInst) yearChartInst.destroy();
+  yearChartInst = new Chart(document.getElementById('yearChart'), {
+    type:'line',
+    data:{ labels:yd.labels, datasets:[{ data:yd.data, borderColor:'#D32F2F', backgroundColor:'rgba(211,47,47,0.08)', tension:0.4, fill:true, pointRadius:3, pointBackgroundColor:'#D32F2F', borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:'#aaa',font:{size:10,family:'IBM Plex Mono'}},grid:{color:'#f0ebe0'}}, y:{ticks:{color:'#aaa',font:{size:10,family:'IBM Plex Mono'}},grid:{color:'#f0ebe0'}} } }
+  });
+}
+
+function renderTypeBreakdown() {
+  const key = activeCity==='all'?'all':activeCity;
+  document.getElementById('typeChartLabel').textContent = activeCity==='all'?'All cities':activeCity;
+  const rows = TYPE_DATA[key]||TYPE_DATA['all'];
+  document.getElementById('typeBreakdown').innerHTML = rows.map(r=>
+    `<div class="dtype-row"><div class="dtype-label">${r.l}</div><div class="dtype-bar-bg"><div class="dtype-bar" style="width:${r.w}%;background:${r.bg}"></div></div><div class="dtype-count">${r.n}</div></div>`
+  ).join('');
+}
+
+function renderHeatmap() {
+  const key = activeCity==='all'?'all':activeCity;
+  const data = HEATMAP[key]||HEATMAP['all'];
+  const grid = document.getElementById('heatmapGrid');
+  grid.innerHTML = '<div class="hm-label"></div>'+MONTHS.map(m=>`<div class="hm-header">${m}</div>`).join('');
+  HM_CITIES.forEach((c,ci)=>{
+    grid.innerHTML += `<div class="hm-label">${c}</div>`;
+    MONTHS.forEach((_,mi)=>{
+      const v = data[ci]?(data[ci][mi]||0):0;
+      grid.innerHTML += `<div class="hm-cell hm-${v}" title="${c} ${MONTHS[mi]}: ${v}">${v>0?v:''}</div>`;
+    });
+  });
+}
+
+function renderCityTable() {
+  const tbody = document.getElementById('cityTableBody');
+  if (activeCity!=='all') {
+    const m = CITY_META[activeCity]; const v = m.vuln;
+    tbody.innerHTML = `<tr><td style="font-weight:600">${activeCity}</td><td>${m.total}</td><td><span class="severity-badge ${v.sev}">${v.sev.toUpperCase()}</span></td><td><span class="vuln-bar" style="width:${v.bar}px;background:${v.color}"></span>${v.score}</td></tr>`;
+  } else {
+    tbody.innerHTML = CITY_TABLE_ALL.map(r=>`<tr><td style="font-weight:600">${r.name}</td><td>${r.events}</td><td><span class="severity-badge ${r.sev}">${r.sev.toUpperCase()}</span></td><td><span class="vuln-bar" style="width:${r.bar}px;background:${r.color}"></span>${r.score}</td></tr>`).join('');
+  }
+}
+
+function renderTimeline() {
+  let data = DISASTERS;
+  if (activeCity!=='all') data = data.filter(d=>d.city===activeCity);
+  if (activeType!=='all') data = data.filter(d=>d.type===activeType);
+  const c = document.getElementById('timelineContainer');
+  document.getElementById('tlCount').textContent = `Showing ${data.length} events`;
+  if (!data.length) { c.innerHTML=`<div class="empty-state"><i class="fa-solid fa-circle-xmark"></i>No events match current filters</div>`; return; }
+  c.innerHTML = data.map((d,i)=>`
+    <div class="tl-item">
+      <div class="tl-dot-col"><div class="tl-dot ${d.severity}"></div>${i<data.length-1?'<div class="tl-line"></div>':''}</div>
+      <div class="tl-body">
+        <div class="tl-top"><div class="tl-title">${d.title}</div><div class="tl-date">${d.date}</div></div>
+        <div class="tl-city"><i class="fa-solid fa-location-dot" style="font-size:10px;margin-right:4px;color:#D32F2F"></i>${d.city} · ${d.affected} affected</div>
+        <div class="tl-meta"><span class="tl-tag ${d.type}">${d.type.charAt(0).toUpperCase()+d.type.slice(1)}</span><span class="severity-badge ${d.severity}">${d.severity.toUpperCase()}</span></div>
+      </div>
+    </div>`).join('');
+}
+
+const tc='#aaa', gc='#f0ebe0';
+new Chart(document.getElementById('floodChart'),{ type:'line', data:{ labels:['2018','2019','2020','2021','2022','2023','2024','2025','2026'], datasets:[{ data:[12,14,10,16,13,18,22,19,9], borderColor:'#1565C0', backgroundColor:'rgba(21,101,192,0.1)', tension:0.4, fill:true, pointRadius:2, pointBackgroundColor:'#1565C0', borderWidth:2 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:tc,font:{size:9,family:'IBM Plex Mono'}},grid:{color:gc}}, y:{ticks:{color:tc,font:{size:9,family:'IBM Plex Mono'}},grid:{color:gc}} } } });
+new Chart(document.getElementById('fireChart'),{ type:'bar', data:{ labels:['2020','2021','2022','2023','2024','2025'], datasets:[{ data:[8,6,10,9,13,11], backgroundColor:'rgba(211,47,47,0.7)', borderColor:'#D32F2F', borderWidth:1, borderRadius:3 }] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:tc,font:{size:9,family:'IBM Plex Mono'}},grid:{color:gc}}, y:{ticks:{color:tc,font:{size:9,family:'IBM Plex Mono'}},grid:{color:gc}} } } });
+new Chart(document.getElementById('cycloneChart'),{ type:'bar', data:{ labels:['Oct','Nov','Dec','Jan','Feb'], datasets:[{data:[2,4,3,1,0],backgroundColor:'rgba(106,27,154,0.7)',borderRadius:3},{data:[1,2,2,2,1],backgroundColor:'rgba(106,27,154,0.25)',borderRadius:3}] }, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ x:{ticks:{color:tc,font:{size:9,family:'IBM Plex Mono'}},grid:{color:gc},stacked:true}, y:{ticks:{color:tc,font:{size:9,family:'IBM Plex Mono'}},grid:{color:gc},stacked:true} } } });
+
+renderAll();
+
+/* ── LIVE ALERTS LOG — renders rows from backend SQLite via live_alerts.js ── */
+function renderLiveAlerts(alerts) {
+  const c = document.getElementById('liveAlertsContainer');
+  const countEl = document.getElementById('liveAlertCount');
+  if (!alerts || !alerts.length) {
+    c.innerHTML = `<div class="empty-state"><i class="fa-solid fa-satellite-dish"></i>No live alerts yet</div>`;
+    countEl.textContent = '0 alerts';
+    return;
+  }
+  countEl.textContent = `${alerts.length} alert${alerts.length>1?'s':''}`;
+  const sevClass = s => s === 'High' ? 'high' : s === 'Medium' ? 'medium' : 'low';
+  c.innerHTML = alerts.map((a,i) => `
+    <div class="tl-item">
+      <div class="tl-dot-col"><div class="tl-dot ${sevClass(a.severity)}"></div>${i<alerts.length-1?'<div class="tl-line"></div>':''}</div>
+      <div class="tl-body">
+        <div class="tl-top"><div class="tl-title">${a.title}</div><div class="tl-date">${new Date(a.createdAt).toLocaleString()}</div></div>
+        <div class="tl-city"><i class="fa-solid fa-location-dot" style="font-size:10px;margin-right:4px;color:#D32F2F"></i>${a.location}</div>
+        <div class="tl-meta">
+          <span class="tl-tag flood">${a.source}</span>
+          <span class="severity-badge ${sevClass(a.severity)}">${a.severity.toUpperCase()}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// live_alerts.js will call this whenever new data arrives
+window.onLiveAlertsUpdated = renderLiveAlerts;
+</script>
+
+<!-- LIVE ALERTS: polling-based, no Socket.IO. Connects to FastAPI + SQLite backend -->
+<script src="live_alerts.js"></script>
+</body>
+</html>

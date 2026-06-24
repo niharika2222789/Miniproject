@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vulnerability Analysis of Urban Slums</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+
+/* ── KEY FIX: lock html/body to exact viewport, no scroll ── */
+html{width:100%;height:100%;overflow:hidden;}
+body{width:100vw;height:100vh;overflow:hidden;background:#f0f0f0;font-family:'IBM Plex Sans',sans-serif;}
+
+/* ── Root grid fills full viewport ── */
+.root{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:100vw;
+  height:100vh;        /* ← was missing or broken */
+  overflow:hidden;
+}
+
+/* ── LEFT panel: flex column, scrollable if needed ── */
+.left{
+  padding:36px 32px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  border-right:1px solid #e8e8e8;
+  background:#fff;
+  overflow-y:auto;
+  height:100vh;        /* ← pin to viewport height */
+}
+
+.platform-label{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:2px;color:#D32F2F;font-weight:500;}
+.platform-label::before{content:'';display:inline-block;width:20px;height:1.5px;background:#D32F2F;}
+.main-title{font-family:'Playfair Display',serif;font-size:clamp(28px,3.5vw,44px);line-height:1.08;color:#1a1a1a;font-weight:700;}
+.main-title em{color:#D32F2F;font-style:italic;}
+.desc{font-size:13px;color:#666;line-height:1.75;}
+.alert-card{background:#FFF5F5;border:0.5px solid #FFCDD2;border-left:3px solid #D32F2F;border-radius:8px;padding:13px 15px;cursor:pointer;transition:background 0.25s;}
+.alert-card:hover{background:#FFEBEE;}
+.alert-title{font-size:13px;font-weight:600;color:#C62828;margin-bottom:4px;}
+.alert-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#E57373;}
+.disaster-tags{display:flex;flex-wrap:wrap;gap:6px;}
+.dtag{font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 9px;border-radius:20px;font-weight:500;}
+.dashboard-btn{margin-top:auto;display:inline-flex;align-items:center;gap:10px;background:#D32F2F;color:#fff;border:none;border-radius:8px;padding:13px 24px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s,transform 0.15s;text-decoration:none;align-self:flex-start;}
+.dashboard-btn:hover{background:#B71C1C;transform:translateY(-1px);}
+.dashboard-btn svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ── RIGHT panel: flex column, exact viewport height ── */
+.right{
+  display:flex;
+  flex-direction:column;
+  background:#f2f2f2;
+  position:relative;
+  height:100vh;        /* ← pin to viewport height */
+  overflow:hidden;
+}
+
+.cards-section{
+  padding:18px 16px 10px;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+  flex-shrink:0;       /* ← don't shrink cards, give rest to canvas */
+}
+
+.mini-card{background:#fff;border:0.5px solid #e0e0e0;border-radius:8px;padding:10px 14px;}
+.mini-card-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;color:#999;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;}
+.weather-row{display:flex;align-items:center;gap:10px;}
+.weather-temp{font-size:20px;font-weight:600;color:#1a1a1a;}
+.weather-sub{font-size:11px;color:#888;margin-top:2px;}
+.risk-row{display:flex;align-items:center;gap:8px;margin:3px 0;}
+.risk-label{font-size:11px;color:#777;width:48px;}
+.risk-bar-bg{flex:1;height:5px;background:#eee;border-radius:3px;overflow:hidden;}
+.risk-fill{height:100%;border-radius:3px;}
+.risk-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#999;width:18px;text-align:right;}
+.risk-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;}
+.people-big{font-size:22px;font-weight:600;color:#1a1a1a;}
+.status-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;}
+.status-pill{font-size:10px;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:4px;}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+/* ── KEY FIX: scene-wrap takes all remaining height ── */
+.scene-wrap{
+  flex:1;              /* ← grow to fill leftover height */
+  position:relative;
+  min-height:0;        /* ← allow flex child to shrink below content size */
+  overflow:hidden;
+}
+
+/* ── KEY FIX: canvas fills its container 100% ── */
+#dc{
+  display:block;
+  width:100%;
+  height:100%;
+  position:absolute; /* ← absolute inside relative parent */
+  top:0;left:0;
+}
+</style>
+</head>
+<body>
+<div class="root">
+
+  <!-- LEFT -->
+  <div class="left">
+    <div class="platform-label">Disaster Preparedness Platform</div>
+    <div class="main-title">Vulnerability<br>Analysis of<br><em>Urban Slums</em></div>
+    <div class="desc">A real-time intelligence platform mapping disaster risk across India's most vulnerable urban communities — integrating live weather data, AI-driven risk scoring, and emergency response coordination.</div>
+
+    <div class="alert-card" id="alertCard">
+      <div class="alert-title" id="alertTitle">Flash flood warning — Dharavi, Mumbai</div>
+      <div class="alert-meta" id="alertMeta">Issued 14 min ago · Teams dispatched</div>
+    </div>
+
+    <div class="disaster-tags" id="dtags"></div>
+
+    <a href="index.html" class="dashboard-btn">
+      Go to Dashboard
+      <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+    </a>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="cards-section">
+      <div class="mini-card">
+        <div class="mini-card-label">LIVE WEATHER · <span id="locLabel">HYDERABAD</span></div>
+        <div class="weather-row">
+          <span style="font-size:24px;" id="weatherIcon">☀️</span>
+          <div>
+            <div class="weather-temp" id="tempDisplay">36°C</div>
+            <div class="weather-sub" id="condDisplay">Mostly sunny · Extreme Heat</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mini-card">
+        <div class="mini-card-label">
+          <span>RISK DISTRIBUTION · ALL CITIES</span>
+          <span class="risk-badge" id="riskBadge" style="background:#FFF3E0;color:#BF360C;">Extreme Heat Risk</span>
+        </div>
+        <div style="margin-top:8px;">
+          <div class="risk-row"><span class="risk-label">High</span><div class="risk-bar-bg"><div class="risk-fill" style="width:70%;background:#E53935;"></div></div><span class="risk-count">12</span></div>
+          <div class="risk-row"><span class="risk-label">Medium</span><div class="risk-bar-bg"><div class="risk-fill" style="width:90%;background:#FB8C00;"></div></div><span class="risk-count">18</span></div>
+          <div class="risk-row"><span class="risk-label">Low</span><div class="risk-bar-bg"><div class="risk-fill" style="width:55%;background:#43A047;"></div></div><span class="risk-count">12</span></div>
+        </div>
+      </div>
+
+      <div class="mini-card">
+        <div class="mini-card-label">PEOPLE UNDER MONITORING</div>
+        <div class="people-big">2.4 <span style="font-size:13px;font-weight:400;color:#888;">Lakh residents</span></div>
+        <div class="status-pills" id="statusPills">
+          <div class="status-pill" style="background:#E8F5E9;color:#2E7D32;"><span class="dot" style="background:#43A047;"></span>Shelter Available</div>
+          <div class="status-pill" style="background:#FFF8E1;color:#E65100;"><span class="dot" style="background:#FB8C00;"></span>Heat Advisory</div>
+          <div class="status-pill" style="background:#FFF3E0;color:#BF360C;"><span class="dot" style="background:#FF7043;"></span>High UV Alert</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CANVAS fills remaining space -->
+    <div class="scene-wrap">
+      <canvas id="dc"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Live weather ─────────────────────────────────────────────────
+(async()=>{
+  try{
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=17.4&longitude=78.49&current_weather=true&timezone=Asia%2FKolkata');
+    const d=await r.json();
+    const tC=Math.round(d.current_weather.temperature);
+    const wc=d.current_weather.weathercode;
+    let cond='Mostly sunny',icon='☀️';
+    if(wc<=1){cond='Clear sky';icon=tC>=40?'🔆':'☀️';}
+    else if(wc<=3){cond='Partly cloudy';icon='⛅';}
+    else if(wc<=48){cond='Foggy';icon='🌫️';}
+    else if(wc<=67){cond='Rainy';icon='🌧️';}
+    else if(wc<=77){cond='Snowy';icon='❄️';}
+    else if(wc<=82){cond='Rain showers';icon='🌦️';}
+    else if(wc<=99){cond='Thunderstorm';icon='⛈️';}
+    const heat=tC>=40?'Extreme Heat':tC>=35?'Hot & Humid':'Warm';
+    document.getElementById('tempDisplay').textContent=tC+'°C';
+    document.getElementById('condDisplay').textContent=cond+' · '+heat;
+    document.getElementById('weatherIcon').textContent=icon;
+    if(tC>=38){
+      document.getElementById('riskBadge').textContent='Extreme Heat Risk';
+      document.getElementById('riskBadge').style.cssText='font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;background:#FFF3E0;color:#BF360C;';
+    }else if(wc>=51){
+      document.getElementById('riskBadge').textContent='High Flood Risk';
+      document.getElementById('riskBadge').style.cssText='font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500;background:#FFEBEE;color:#C62828;';
+    }
+  }catch(e){console.warn('Weather fetch failed');}
+})();
+
+// ── Rotating alerts ──────────────────────────────────────────────
+const ALERTS=[
+  {title:'Flash flood warning — Dharavi, Mumbai',meta:'Issued 14 min ago · Teams dispatched'},
+  {title:'Extreme heat advisory — Govindpuri, Delhi',meta:'Issued 3 min ago · Cooling centers open'},
+  {title:'Landslide risk — Kurla hillside settlements',meta:'Issued 28 min ago · Evacuation advised'},
+  {title:'High wind alert — Dharavi coastal belt',meta:'Issued 1 hr ago · Shelters activated'},
+  {title:'Heat emergency — Hyderabad slum zones',meta:'Temp: 36°C · Health teams mobilised'},
+  {title:'Fire hazard alert — Shivaji Nagar, Pune',meta:'Issued 42 min ago · Fire brigade en route'},
+  {title:'Cyclone warning — Chennai coastal slums',meta:'Issued 20 min ago · Evacuation in progress'},
+  {title:'Earthquake tremors — Ahmedabad informal zones',meta:'Issued 5 min ago · Structural assessment started'},
+];
+let aIdx=0;
+setInterval(()=>{
+  aIdx=(aIdx+1)%ALERTS.length;
+  const card=document.getElementById('alertCard');
+  card.style.opacity='0';card.style.transition='opacity 0.4s';
+  setTimeout(()=>{
+    document.getElementById('alertTitle').textContent=ALERTS[aIdx].title;
+    document.getElementById('alertMeta').textContent=ALERTS[aIdx].meta;
+    card.style.opacity='1';
+  },400);
+},4000);
+
+// ── Disaster tags ────────────────────────────────────────────────
+[
+  {label:'Wildfire',bg:'#FBE9E7',color:'#BF360C'},
+  {label:'Flood',bg:'#E3F2FD',color:'#0D47A1'},
+  {label:'Earthquake',bg:'#FFF8E1',color:'#E65100'},
+  {label:'Cyclone',bg:'#EDE7F6',color:'#4527A0'},
+  {label:'Heatwave',bg:'#FFF3E0',color:'#E65100'},
+  {label:'Landslide',bg:'#EFEBE9',color:'#4E342E'},
+  {label:'Tsunami',bg:'#E0F7FA',color:'#006064'},
+  {label:'Thunderstorm',bg:'#F3E5F5',color:'#4A148C'},
+].forEach(t=>{
+  const el=document.createElement('span');
+  el.className='dtag';
+  el.textContent=t.label;
+  el.style.background=t.bg;
+  el.style.color=t.color;
+  document.getElementById('dtags').appendChild(el);
+});
+
+// ── Canvas animation ─────────────────────────────────────────────
+const canvas=document.getElementById('dc');
+const ctx=canvas.getContext('2d');
+let W=0,H=0,tick=0;
+
+function resize(){
+  const wrap=canvas.parentElement;
+  // Use getBoundingClientRect for accurate dimensions after layout
+  const rect=wrap.getBoundingClientRect();
+  W=canvas.width=Math.floor(rect.width);
+  H=canvas.height=Math.floor(rect.height);
+  initBuildings();
+}
+
+// ResizeObserver watches the container and resyncs canvas size
+const ro=new ResizeObserver(()=>{ resize(); });
+ro.observe(canvas.parentElement);
+
+// Also fire on load and after a short delay (handles font/layout settle)
+window.addEventListener('load', ()=>{ setTimeout(resize, 80); });
+setTimeout(resize, 100);
+
+// Particles
+const particles=[];
+function addP(x,y,vx,vy,life,r,type){particles.push({x,y,vx,vy,life,maxLife:life,r,type});}
+
+// Buildings
+const buildings=[];
+function initBuildings(){
+  if(!W||!H)return;
+  buildings.length=0;
+  const cols=['#9E9E9E','#BDBDBD','#757575','#8D8D8D'];
+  for(let i=0;i<14;i++)
+    buildings.push({x:(i/14)*W*1.05,w:W/14*0.78,h:38+Math.random()*72,color:cols[i%4],isSlum:false});
+  for(let i=0;i<8;i++)
+    buildings.push({x:W*0.5+i*(W*0.065),w:W*0.057,h:16+Math.random()*18,color:'#A1887F',isSlum:true});
+}
+
+function lerpC(c1,c2,t){
+  const p=s=>parseInt(s,16);
+  const[r1,g1,b1]=[p(c1.slice(1,3)),p(c1.slice(3,5)),p(c1.slice(5,7))];
+  const[r2,g2,b2]=[p(c2.slice(1,3)),p(c2.slice(3,5)),p(c2.slice(5,7))];
+  return`rgb(${Math.round(r1+(r2-r1)*t)},${Math.round(g1+(g2-g1)*t)},${Math.round(b1+(b2-b1)*t)})`;
+}
+
+const SKIES=[
+  ['#FF8C42','#FFD580'],
+  ['#1e2d3d','#3a3a4a'],
+  ['#1a0800','#2e0e00'],
+  ['#011529','#01203d'],
+  ['#160e08','#241408'],
+  ['#0d0d22','#141428'],
+  ['#010c18','#011828'],
+  ['#111006','#1c1a08'],
+];
+
+function drawSky(phase,mix){
+  const i=phase%8,j=(i+1)%8;
+  const g=ctx.createLinearGradient(0,0,0,H*0.75);
+  g.addColorStop(0,lerpC(SKIES[i][0],SKIES[j][0],mix));
+  g.addColorStop(1,lerpC(SKIES[i][1],SKIES[j][1],mix));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+}
+
+function drawStars(a){
+  ctx.save();ctx.globalAlpha=a*0.75;ctx.fillStyle='#fff';
+  for(let s=0;s<70;s++){
+    const sx=(s*137.5)%W,sy=(s*91.3)%(H*0.62);
+    const r=0.5+Math.sin(tick*0.04+s)*0.45;
+    ctx.beginPath();ctx.arc(sx,sy,r,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawSun(a){
+  ctx.save();ctx.globalAlpha=a;
+  ctx.beginPath();ctx.arc(W*0.78,H*0.17,Math.min(W,H)*0.07,0,Math.PI*2);
+  ctx.fillStyle='#FDD835';ctx.fill();
+  for(let i=0;i<8;i++){
+    const ang=i*Math.PI/4+tick*0.009;
+    const rad=Math.min(W,H)*0.08;
+    ctx.strokeStyle='rgba(253,216,53,0.45)';ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.moveTo(W*0.78+Math.cos(ang)*rad,H*0.17+Math.sin(ang)*rad);
+    ctx.lineTo(W*0.78+Math.cos(ang)*(rad+9),H*0.17+Math.sin(ang)*(rad+9));
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawHeat(a){
+  ctx.save();ctx.globalAlpha=a*0.13;
+  for(let i=0;i<5;i++){
+    const y=H*0.28+i*22+Math.sin(tick*0.04+i)*5;
+    ctx.strokeStyle='#FF8C00';ctx.lineWidth=32;
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+  ctx.restore();
+}
+
+const rain=[];
+function ensureRain(){while(rain.length<130)rain.push({x:Math.random()*W,y:Math.random()*H,s:5+Math.random()*5,l:10+Math.random()*12});}
+function drawRain(a){
+  ensureRain();ctx.save();ctx.globalAlpha=a*0.7;
+  ctx.strokeStyle='#90CAF9';ctx.lineWidth=1;
+  rain.forEach(d=>{
+    ctx.beginPath();ctx.moveTo(d.x,d.y);ctx.lineTo(d.x-1.5,d.y+d.l);ctx.stroke();
+    d.y+=d.s;d.x-=0.8;
+    if(d.y>H){d.y=-15;d.x=Math.random()*W;}
+  });
+  ctx.restore();
+}
+
+let lTimer=0,lActive=false,lx=0;
+function drawLightning(a){
+  lTimer++;
+  if(lTimer>65){lActive=true;lTimer=0;lx=W*0.1+Math.random()*W*0.8;}
+  if(lActive){
+    ctx.save();ctx.globalAlpha=a*(Math.random()>0.3?0.95:0.2);
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;
+    ctx.beginPath();
+    let cx=lx,cy=0;
+    while(cy<H*0.7){cx+=(-12+Math.random()*24);cy+=14+Math.random()*16;ctx.moveTo(cx,cy-14);ctx.lineTo(cx,cy);}
+    ctx.stroke();ctx.restore();
+    if(Math.random()>0.87)lActive=false;
+  }
+}
+
+function drawFlood(lvl){
+  if(lvl<=0)return;
+  const fy=H-lvl;
+  const g=ctx.createLinearGradient(0,fy,0,H);
+  g.addColorStop(0,'rgba(30,100,220,0.55)');g.addColorStop(1,'rgba(10,60,160,0.85)');
+  ctx.fillStyle=g;
+  ctx.beginPath();ctx.moveTo(0,H);
+  for(let x=0;x<=W;x+=8)ctx.lineTo(x,fy+Math.sin((x*0.05)+tick*0.07)*4);
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='rgba(150,200,255,0.4)';ctx.lineWidth=1.5;
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=8)ctx.lineTo(x,fy+Math.sin((x*0.05)+tick*0.07)*4);
+  ctx.stroke();
+}
+
+function drawFire(a,pos){
+  pos.forEach(px=>{
+    [
+      [Math.max(20,W*0.06), Math.max(45,H*0.22), 'rgba(255,80,0,','rgba(255,200,0,','rgba(255,255,200,'],
+      [Math.max(14,W*0.04), Math.max(58,H*0.28), 'rgba(200,40,0,','rgba(255,100,0,','rgba(255,200,50,'],
+      [Math.max(9, W*0.025),Math.max(38,H*0.18), 'rgba(255,180,0,','rgba(255,240,100,','rgba(255,255,200,'],
+    ].forEach(([fw,fh,c0,c1,c2],fi)=>{
+      const g=ctx.createRadialGradient(px,H-4,2,px,H-fh,fh);
+      g.addColorStop(0,c2+(a*0.9)+')');
+      g.addColorStop(0.5,c1+(a*0.7)+')');
+      g.addColorStop(1,c0+'0)');
+      ctx.save();ctx.fillStyle=g;
+      const wb=Math.sin(tick*0.14+px+fi)*5;
+      ctx.beginPath();ctx.ellipse(px+wb,H-fh*0.5,fw/2,fh/2,0,0,Math.PI*2);ctx.fill();ctx.restore();
+      if(Math.random()<0.035)addP(px+wb,H-fh,(-1+Math.random()*2)*0.4,-1.4-Math.random(),72,7+Math.random()*9,'smoke');
+    });
+  });
+}
+
+let tX=0;
+function drawTornado(a){
+  if(!tX)tX=W*0.15;
+  tX+=0.35;if(tX>W*0.55)tX=W*0.1;
+  const tw=Math.max(32,W*0.08),th=Math.max(90,H*0.42);
+  ctx.save();ctx.globalAlpha=a;
+  const g=ctx.createLinearGradient(0,H-th,0,H);
+  g.addColorStop(0,'rgba(160,210,230,0.1)');g.addColorStop(1,'rgba(160,210,230,0.5)');
+  ctx.fillStyle=g;
+  ctx.beginPath();
+  ctx.moveTo(tX-tw,H-th);ctx.quadraticCurveTo(tX+tw*0.5,H-th*0.5,tX-6,H-18);
+  ctx.lineTo(tX+6,H-18);ctx.quadraticCurveTo(tX+tw*1.5,H-th*0.5,tX+tw,H-th);
+  ctx.closePath();ctx.fill();
+  for(let i=0;i<6;i++){
+    const da=(tick*0.09+i*1.05)%(Math.PI*2);
+    const rad=tw*(0.2+i*0.16),dy=(i/6)*th;
+    ctx.fillStyle='rgba(100,80,60,0.65)';
+    ctx.fillRect(tX+Math.cos(da)*rad-3,H-th+dy-2,6,3);
+  }
+  ctx.restore();
+  if(Math.random()<0.025)addP(tX-tw+Math.random()*tw*2,H-th,(-2+Math.random()*4),-0.4,55,4,'debris');
+}
+
+function drawCracks(a){
+  ctx.save();ctx.globalAlpha=a;
+  [0.15,0.32,0.5,0.67,0.83].forEach(frac=>{
+    const cx=W*frac;
+    ctx.strokeStyle='rgba(200,168,75,0.8)';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(cx,H);
+    let cy=H,cc=cx;
+    while(cy>H*0.65){cc+=(-7+Math.random()*14);cy-=8+Math.random()*8;ctx.lineTo(cc,cy);}
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+let tsX=-200;
+function drawTsunami(a){
+  tsX+=2.0;if(tsX>W*1.7)tsX=-W*0.4;
+  const wh=Math.max(70,H*0.38);
+  ctx.save();ctx.globalAlpha=a;
+  ctx.fillStyle='rgba(0,150,200,0.52)';
+  ctx.beginPath();
+  ctx.moveTo(tsX,H);ctx.lineTo(tsX,H-wh);
+  ctx.quadraticCurveTo(tsX+W*0.13,H-wh*1.55,tsX+W*0.27,H-wh*0.32);
+  ctx.lineTo(tsX+W*0.27,H);ctx.closePath();ctx.fill();
+  ctx.restore();
+}
+
+function drawLandslide(a){
+  ctx.save();ctx.globalAlpha=a;
+  const mx=W*0.78,my=H*0.28;
+  const g=ctx.createLinearGradient(mx,my,mx+W*0.22,H);
+  g.addColorStop(0,'rgba(139,90,43,0.72)');g.addColorStop(1,'rgba(100,60,20,0.38)');
+  ctx.fillStyle=g;
+  ctx.beginPath();ctx.moveTo(mx,my);
+  ctx.lineTo(mx+W*0.18+Math.sin(tick*0.04)*5,H);ctx.lineTo(mx-W*0.02,H);ctx.closePath();ctx.fill();
+  for(let i=0;i<6;i++){
+    const rx=mx+i*(W*0.03)+Math.sin(tick*0.03+i)*3;
+    const ry=my+i*((H-my)/6)+Math.cos(tick*0.04+i)*3;
+    ctx.fillStyle='rgba(100,70,40,0.8)';
+    ctx.beginPath();ctx.ellipse(rx,ry,7,5,0.5,0,Math.PI*2);ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawGround(flood){
+  const gy=H-(flood||0);
+  const g=ctx.createLinearGradient(0,gy-8,0,H);
+  g.addColorStop(0,'#5D4037');g.addColorStop(1,'#3E2723');
+  ctx.fillStyle=g;ctx.fillRect(0,gy-8,W,H);
+}
+
+function drawBuildings(flood){
+  buildings.forEach(b=>{
+    const fl=flood||0;
+    const by=H-b.h-fl;
+    ctx.fillStyle=b.color;
+    if(b.isSlum){
+      ctx.beginPath();
+      ctx.moveTo(b.x,H-fl);ctx.lineTo(b.x,by+7);
+      ctx.lineTo(b.x+b.w/2,by);ctx.lineTo(b.x+b.w,by+7);
+      ctx.lineTo(b.x+b.w,H-fl);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#EF5350';ctx.fillRect(b.x,by+7,b.w,3);
+    }else{
+      ctx.fillRect(b.x,by,b.w,b.h+fl);
+      ctx.fillStyle='rgba(255,235,150,0.42)';
+      for(let r=0;r<3;r++)for(let c=0;c<2;c++)
+        if(Math.random()>0.4)ctx.fillRect(b.x+3+c*(b.w/2-1),by+7+r*15,b.w/2-5,7);
+    }
+  });
+}
+
+function drawParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i],prog=1-p.life/p.maxLife;
+    ctx.save();
+    if(p.type==='smoke'){
+      ctx.globalAlpha=(1-prog)*0.38;ctx.fillStyle='rgba(90,90,90,0.5)';
+      ctx.beginPath();ctx.arc(p.x,p.y,p.r*(1+prog*2),0,Math.PI*2);ctx.fill();
+    }else{
+      ctx.globalAlpha=(1-prog)*0.55;ctx.fillStyle='rgba(150,120,80,0.7)';
+      ctx.fillRect(p.x,p.y,6,3);
+    }
+    ctx.restore();
+    p.x+=p.vx;p.y+=p.vy;p.life--;
+    if(p.life<=0)particles.splice(i,1);
+  }
+}
+
+function drawHUD(name){
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,0.45)';
+  ctx.beginPath();
+  roundRect(ctx,8,8,124,22,3);
+  ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='500 9px "IBM Plex Mono",monospace';
+  ctx.textAlign='left';ctx.textBaseline='middle';
+  ctx.fillText('▶ '+name.toUpperCase(),15,19);
+  PHASES.forEach((_,i)=>{
+    ctx.beginPath();
+    ctx.arc(W-10-(PHASES.length-1-i)*12,13,3,0,Math.PI*2);
+    ctx.fillStyle=i===phase?'#fff':'rgba(255,255,255,0.27)';
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function roundRect(c,x,y,w,h,r){
+  c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r);c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h);c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r);c.quadraticCurveTo(x,y,x+r,y);c.closePath();
+}
+
+const PHASES=['Heatwave','Thunderstorm','Wildfire','Flood','Earthquake','Cyclone','Tsunami','Landslide'];
+const PD=220;
+let phase=0,phT=0;
+
+function draw(){
+  if(!W||!H){requestAnimationFrame(draw);return;}
+  tick++;phT++;
+  if(phT>PD){phT=0;phase=(phase+1)%PHASES.length;}
+  const a=Math.min(phT/55,1);
+  const mix=phT/PD;
+
+  drawSky(phase,mix);
+  if(phase>=1)drawStars(a*0.7);
+
+  if(phase===0){drawSun(a);drawHeat(a);}
+  if(phase===1){drawRain(a);drawLightning(a);}
+  if(phase===2)drawRain(0.07);
+  if(phase===3){drawRain(a*0.45);drawLightning(a*0.25);}
+  if(phase===7)drawLandslide(a);
+
+  const flood=phase===3?Math.min(phT*0.28,Math.min(58,H*0.28))*a:0;
+  drawGround(flood);
+  if(phase===6)drawTsunami(a);
+  drawBuildings(flood);
+  if(phase===3)drawFlood(flood);
+
+  const fp=[W*0.08,W*0.22,W*0.36,W*0.58,W*0.72];
+  if(phase===2)drawFire(a,fp);
+  if(phase===4){
+    const sh=Math.sin(tick*0.5)*a*3.5;
+    ctx.save();ctx.translate(sh,sh*0.4);drawCracks(a);ctx.restore();
+  }
+  if(phase===5)drawTornado(a);
+
+  drawParticles();
+  if(phase===3&&Math.random()<0.08)
+    addP(Math.random()*W,H-flood,(-2+Math.random()*4),-2.2-Math.random()*2.2,22,3,'spray');
+
+  drawHUD(PHASES[phase]);
+  requestAnimationFrame(draw);
+}
+
+initBuildings();
+requestAnimationFrame(draw);
+ src="live_alerts.js"</script>
+</script>
+</body>
+</html>

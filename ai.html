@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Intelligence — Vulnerability Mapping</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;font-family:'IBM Plex Sans',sans-serif;background:#f5f2ed;overflow:hidden;}
+
+/* ══ TOPBAR ══ */
+.topbar{display:flex;justify-content:space-between;align-items:center;background:#fff;border-bottom:1px solid #e8e2d8;padding:0 24px;height:58px;flex-shrink:0;gap:16px;position:relative;z-index:50;}
+.brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.brand-icon{width:32px;height:32px;background:#D32F2F;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;}
+.brand-name{font-family:'Playfair Display',serif;font-size:17px;font-weight:700;color:#1a1a1a;}
+.brand-sub{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:#D32F2F;text-transform:uppercase;margin-top:1px;}
+#citySelect{font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#1a1a1a;background:#faf8f4;border:1px solid #e8e2d8;border-radius:6px;padding:7px 32px 7px 12px;cursor:pointer;outline:none;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+#citySelect:hover{border-color:#D32F2F;}
+.emergency-wrap{display:flex;flex-direction:column;}
+.emergency-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#bbb;text-transform:uppercase;margin-bottom:4px;}
+.emergency{display:flex;gap:6px;align-items:center;}
+.emergency button{width:38px;height:38px;border-radius:8px;border:1px solid #e8e2d8;background:#faf8f4;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.emergency button:hover{background:#FFF5F5;border-color:#FFCDD2;transform:translateY(-1px);}
+
+/* ══ BODY ══ */
+.body-wrap{display:flex;height:calc(100vh - 58px);overflow:hidden;}
+
+/* ══ SIDEBAR ══ */
+.sidebar{width:210px;flex-shrink:0;background:#fff;border-right:1px solid #e8e2d8;display:flex;flex-direction:column;padding:16px 0;gap:2px;overflow-y:auto;}
+.sidebar-section{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:#ccc;text-transform:uppercase;padding:10px 20px 4px;}
+.sidebar button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:11px 20px;font-family:'IBM Plex Sans',sans-serif;font-size:13px;color:#555;text-align:left;cursor:pointer;border-left:3px solid transparent;transition:all .18s;}
+.sidebar button:hover{background:#faf8f4;color:#1a1a1a;}
+.sidebar button.active{background:#FFF5F5;color:#D32F2F;border-left-color:#D32F2F;font-weight:600;}
+.sidebar-icon{font-size:15px;width:18px;text-align:center;}
+.sidebar-divider{height:1px;background:#f0ebe0;margin:8px 16px;}
+.live-indicator{display:flex;align-items:center;gap:7px;margin-top:auto;padding:14px 20px;border-top:1px solid #f0ebe0;}
+.live-dot{width:7px;height:7px;background:#D32F2F;border-radius:50%;animation:pulse 1.2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.4);}}
+.live-text{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#D32F2F;letter-spacing:1px;}
+
+/* ══ MAIN — SCROLLABLE ══ */
+.main{flex:1;overflow-y:auto;padding:0;display:flex;flex-direction:column;}
+.main::-webkit-scrollbar{width:5px;}
+.main::-webkit-scrollbar-thumb{background:#e0d8d0;border-radius:4px;}
+
+/* Top info strip */
+.info-strip{padding:18px 28px 0;flex-shrink:0;}
+.page-header-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:3px;color:#D32F2F;text-transform:uppercase;margin-bottom:4px;}
+.page-title{font-family:'Playfair Display',serif;font-size:24px;font-weight:700;color:#1a1a1a;}
+.page-title em{color:#D32F2F;font-style:italic;}
+.page-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#bbb;margin-top:4px;letter-spacing:1px;}
+
+/* Cards */
+.cards-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px 28px;flex-shrink:0;}
+.card{background:#fff;border:1px solid #e8e2d8;border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#D32F2F,#FF7043);}
+.card-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:#D32F2F;text-transform:uppercase;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;}
+.card-label span{color:#bbb;}
+.forecast-days{display:flex;}
+.forecast-day{flex:1;text-align:center;padding:8px 3px;border-right:1px solid #f0ebe0;transition:background .2s;}
+.forecast-day:last-child{border-right:none;}
+.forecast-day:hover{background:#faf8f4;}
+.forecast-day.today{background:#FFF5F5;}
+.fd-name{font-family:'IBM Plex Mono',monospace;font-size:9px;color:#bbb;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.fd-icon{font-size:18px;margin-bottom:4px;}
+.fd-temp{font-family:'Playfair Display',serif;font-size:15px;font-weight:700;color:#1a1a1a;margin-bottom:2px;}
+.fd-cond{font-size:9px;color:#aaa;font-family:'IBM Plex Mono',monospace;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.fd-rain{font-size:9px;color:#bbb;}
+.forecast-day.today .fd-name,.forecast-day.today .fd-temp{color:#D32F2F;}
+.risk-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.risk-row-item{display:flex;align-items:center;gap:10px;}
+.risk-row-name{font-size:11px;font-weight:600;width:56px;color:#555;}
+.risk-bar-bg{flex:1;height:6px;background:#f0ebe0;border-radius:4px;overflow:hidden;}
+.risk-bar-fill{height:100%;border-radius:4px;width:0%;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.risk-row-count{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#999;width:20px;text-align:right;}
+.ai-insight{background:#faf8f4;border:1px solid #f0ebe0;border-left:3px solid #D32F2F;border-radius:6px;padding:9px 12px;font-size:12px;color:#555;line-height:1.6;font-style:italic;}
+.ai-insight-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#D32F2F;text-transform:uppercase;margin-bottom:4px;font-style:normal;display:block;}
+.skeleton{background:linear-gradient(90deg,#f0ebe0 25%,#e8e2d8 50%,#f0ebe0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:4px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+.skel-row{height:11px;margin-bottom:7px;}
+
+/* ══ CHAT — FULL WIDTH, BIG ══ */
+.chat-wrap{padding:0 28px 28px;display:flex;flex-direction:column;gap:0;flex:1;}
+
+.chat-section{
+  background:#fff;
+  border:1px solid #e8e2d8;
+  border-radius:12px;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  min-height:700px;  /* BIG */
+}
+.chat-section::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#D32F2F,#FF7043);}
+
+.chat-header{
+  padding:16px 24px;
+  border-bottom:1px solid #f0ebe0;
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;
+  background:#fff;
+  position:relative;
+}
+.chat-header::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#D32F2F,#FF7043);}
+.chat-header-left{display:flex;align-items:center;gap:12px;}
+.chat-avatar{width:42px;height:42px;background:linear-gradient(135deg,#D32F2F,#FF7043);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.chat-header-title{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:#1a1a1a;}
+.chat-header-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#bbb;margin-top:2px;}
+.chat-header-right{display:flex;align-items:center;gap:14px;}
+.chat-status{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;}
+.chat-status.online{color:#43A047;}.chat-status.offline{color:#FB8C00;}.chat-status.checking{color:#bbb;}
+.status-dot{width:7px;height:7px;border-radius:50%;}
+.status-dot.online{background:#43A047;animation:pulse 1.4s infinite;}.status-dot.offline{background:#FB8C00;}.status-dot.checking{background:#ddd;}
+.speak-toggle{display:flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#888;cursor:pointer;user-select:none;padding:6px 12px;border:1px solid #e8e2d8;border-radius:8px;transition:all .2s;}
+.speak-toggle:hover{border-color:#D32F2F;color:#D32F2F;}
+.speak-toggle input{accent-color:#D32F2F;width:14px;height:14px;cursor:pointer;}
+
+/* ══ MESSAGES — TALL, SCROLLABLE ══ */
+.chat-messages{
+  flex:1;
+  overflow-y:auto;
+  padding:28px 32px;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+  background:#faf8f4;
+  min-height:500px;
+}
+.chat-messages::-webkit-scrollbar{width:5px;}
+.chat-messages::-webkit-scrollbar-thumb{background:#e0d8d0;border-radius:4px;}
+
+/* DATE divider */
+.date-divider{display:flex;align-items:center;gap:12px;margin:8px 0;}
+.date-divider::before,.date-divider::after{content:'';flex:1;height:1px;background:#e8e2d8;}
+.date-divider span{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#bbb;white-space:nowrap;padding:0 4px;}
+
+/* Messages */
+.msg{display:flex;gap:14px;align-items:flex-start;opacity:0;animation:msgIn .3s ease forwards;}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.msg.user{flex-direction:row-reverse;}
+.msg-avatar{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.msg.ai   .msg-avatar{background:linear-gradient(135deg,#D32F2F,#FF7043);}
+.msg.user .msg-avatar{background:#1a1a1a;font-size:12px;font-family:'IBM Plex Mono',monospace;color:#fff;font-weight:600;}
+.msg-body{max-width:75%;}
+.msg-name{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#bbb;margin-bottom:6px;letter-spacing:.5px;}
+.msg.user .msg-name{text-align:right;}
+
+/* BIG bubbles */
+.msg-bubble{
+  padding:18px 22px;
+  border-radius:14px;
+  font-size:16px;
+  line-height:1.85;
+  color:#2a2a2a;
+  word-break:break-word;
+}
+.msg.ai   .msg-bubble{background:#fff;border:1px solid #e8e2d8;border-radius:2px 14px 14px 14px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.msg.user .msg-bubble{background:#D32F2F;color:#fff;border-radius:14px 2px 14px 14px;box-shadow:0 2px 8px rgba(211,47,47,.25);}
+
+.msg-footer{display:flex;align-items:center;gap:10px;margin-top:8px;}
+.msg.user .msg-footer{justify-content:flex-end;}
+.msg-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#bbb;}
+.speak-msg-btn{background:none;border:1px solid #e8e2d8;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer;color:#888;transition:all .2s;display:flex;align-items:center;gap:4px;}
+.speak-msg-btn:hover{background:#FFF5F5;border-color:#FFCDD2;color:#D32F2F;}
+.speak-msg-btn.speaking{background:#FFF5F5;border-color:#D32F2F;color:#D32F2F;}
+
+/* Typing dots */
+.typing-dots{display:flex;gap:5px;padding:18px 22px;background:#fff;border:1px solid #e8e2d8;border-radius:2px 14px 14px 14px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+.typing-dot{width:8px;height:8px;background:#D32F2F;border-radius:50%;opacity:.4;animation:typeBounce .9s ease-in-out infinite;}
+.typing-dot:nth-child(2){animation-delay:.15s;}.typing-dot:nth-child(3){animation-delay:.3s;}
+@keyframes typeBounce{0%,60%,100%{opacity:.4;transform:translateY(0);}30%{opacity:1;transform:translateY(-5px);}}
+
+.cursor{display:inline-block;width:2px;height:16px;background:#D32F2F;margin-left:2px;vertical-align:middle;animation:blink .7s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+
+/* ══ INPUT AREA — BIG ══ */
+.chat-input-area{
+  padding:18px 24px;
+  border-top:1px solid #f0ebe0;
+  background:#fff;
+  flex-shrink:0;
+}
+.backend-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:8px 14px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11px;transition:all .3s;}
+.backend-bar.online{background:#E8F5E9;color:#2E7D32;}.backend-bar.offline{background:#FFF8E1;color:#E65100;}.backend-bar.checking{background:#f5f2ed;color:#bbb;}
+.backend-bar-left{display:flex;align-items:center;gap:7px;}
+.backend-dot{width:7px;height:7px;border-radius:50%;}
+.backend-bar.online .backend-dot{background:#43A047;}.backend-bar.offline .backend-dot{background:#FB8C00;}.backend-bar.checking .backend-dot{background:#ccc;}
+.retry-btn{font-size:10px;font-family:'IBM Plex Mono',monospace;background:none;border:1px solid currentColor;border-radius:4px;padding:3px 9px;cursor:pointer;opacity:.7;transition:opacity .2s;}
+.retry-btn:hover{opacity:1;}
+
+.input-row{display:flex;gap:12px;align-items:flex-end;}
+#userQuestion{
+  flex:1;padding:16px 18px;
+  border:2px solid #e8e2d8;border-radius:12px;
+  font-family:'IBM Plex Sans',sans-serif;font-size:16px;
+  outline:none;background:#faf8f4;color:#1a1a1a;
+  transition:border-color .2s;resize:none;
+  min-height:56px;max-height:160px;line-height:1.6;
+  overflow-y:auto;
+}
+#userQuestion:focus{border-color:#D32F2F;background:#fff;box-shadow:0 0 0 3px rgba(211,47,47,.08);}
+#userQuestion::placeholder{color:#c0b8b0;font-size:15px;}
+
+.btn-col{display:flex;flex-direction:column;gap:8px;}
+.send-btn{
+  padding:14px 26px;background:#D32F2F;color:#fff;
+  border:none;border-radius:12px;
+  font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;
+  cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px;white-space:nowrap;
+}
+.send-btn:hover{background:#B71C1C;transform:translateY(-1px);box-shadow:0 4px 12px rgba(211,47,47,.3);}
+.send-btn:disabled{background:#e0d8d0;cursor:not-allowed;transform:none;box-shadow:none;}
+.mic-btn{
+  padding:14px 18px;background:#faf8f4;
+  border:2px solid #e8e2d8;border-radius:12px;
+  font-size:20px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:all .2s;font-family:'IBM Plex Mono',monospace;font-size:13px;
+  white-space:nowrap;
+}
+.mic-btn:hover{background:#FFF5F5;border-color:#FFCDD2;}
+.mic-btn.listening{background:#FFF5F5;border-color:#D32F2F;color:#D32F2F;animation:micPulse .8s infinite;}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(211,47,47,.3);}50%{box-shadow:0 0 0 8px rgba(211,47,47,0);}}
+.input-hints{display:flex;align-items:center;gap:16px;margin-top:10px;flex-wrap:wrap;}
+.hint{font-family:'IBM Plex Mono',monospace;font-size:10px;color:#bbb;}
+.hint kbd{background:#f0ebe0;border:1px solid #ddd;border-radius:3px;padding:1px 6px;font-size:9px;}
+#micStatus{font-family:'IBM Plex Mono',monospace;font-size:11px;color:#D32F2F;}
+
+/* ══ SUGGESTIONS ══ */
+.suggestions-wrap{padding:0 28px 28px;flex-shrink:0;}
+.suggestions-label{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:#bbb;text-transform:uppercase;margin-bottom:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{font-family:'IBM Plex Sans',sans-serif;font-size:13px;font-weight:500;padding:8px 16px;border-radius:24px;border:1px solid #e8e2d8;background:#fff;color:#555;cursor:pointer;transition:all .2s;}
+.chip:hover{background:#FFF5F5;border-color:#FFCDD2;color:#D32F2F;transform:translateY(-1px);}
+
+/* ══ MODAL ══ */
+.modal-backdrop{position:fixed;inset:0;background:rgba(26,26,26,.4);backdrop-filter:blur(3px);z-index:2000;display:none;align-items:center;justify-content:center;}
+.modal-backdrop.open{display:flex;}
+.modal{background:#fff;border-radius:14px;padding:30px;min-width:340px;box-shadow:0 24px 60px rgba(0,0,0,.18);animation:popIn .25s ease;}
+@keyframes popIn{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-icon{font-size:2.8rem;margin-bottom:12px;text-align:center;}
+.modal-title{font-family:'Playfair Display',serif;font-size:24px;color:#1a1a1a;text-align:center;margin-bottom:4px;}
+.modal-sub{font-size:13px;color:#888;text-align:center;margin-bottom:20px;font-family:'IBM Plex Mono',monospace;}
+.modal-number{display:flex;align-items:center;justify-content:center;background:#faf8f4;border:1px solid #e8e2d8;border-radius:10px;padding:16px 20px;font-family:'IBM Plex Mono',monospace;font-size:2rem;font-weight:500;color:#1a1a1a;margin-bottom:18px;letter-spacing:3px;}
+.modal-call-btn{width:100%;background:#D32F2F;color:#fff;border:none;border-radius:10px;padding:14px;font-family:'IBM Plex Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;}
+.modal-call-btn:hover{background:#B71C1C;}
+.modal-close{width:100%;background:none;border:1px solid #e8e2d8;border-radius:10px;padding:11px;font-family:'IBM Plex Sans',sans-serif;font-size:14px;color:#888;cursor:pointer;margin-top:10px;}
+.modal-close:hover{border-color:#ccc;color:#555;}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-icon">⚠</div>
+    <div>
+      <div class="brand-name">Vulnerability Mapping</div>
+      <div class="brand-sub">Disaster Preparedness Platform</div>
+    </div>
+  </div>
+  <select id="citySelect" onchange="onCityChange()">
+    <option value="hyderabad">📍 Hyderabad</option>
+    <option value="delhi">📍 Delhi</option>
+    <option value="mumbai">📍 Mumbai</option>
+    <option value="chennai">📍 Chennai</option>
+    <option value="jammu">📍 Jammu &amp; Kashmir</option>
+  </select>
+  <div class="emergency-wrap">
+    <div class="emergency-label">Emergency Services</div>
+    <div class="emergency">
+      <button onclick="openModal('ambulance')" title="Ambulance">🚑</button>
+      <button onclick="openModal('police')"    title="Police">🚓</button>
+      <button onclick="openModal('fire')"      title="Fire Brigade">🔥</button>
+      <button onclick="openModal('shelter')"   title="Nearest Shelter">🏠</button>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="body-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Navigation</div>
+    <button onclick="window.location.href='index.html'"><span class="sidebar-icon">🗺</span> Dashboard</button>
+    <button class="active"><span class="sidebar-icon">🤖</span> AI Intelligence</button>
+    <button onclick="window.location.href='emergency.html'"><span class="sidebar-icon">🚨</span> Emergency Response</button>
+    <button onclick="window.location.href='analytics.html'"><span class="sidebar-icon">📊</span> Risk Analytics</button>
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">Records</div>
+    <button onclick="window.location.href='history.html'"><span class="sidebar-icon">📜</span> Disaster History</button>
+   
+    <div class="sidebar-divider"></div>
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span class="live-text">SYSTEMS LIVE</span>
+    </div>
+  </div>
+
+  <!-- MAIN — fully scrollable -->
+  <div class="main" id="mainScroll">
+
+    <!-- Header -->
+    <div class="info-strip">
+      <div class="page-header-label">AI Intelligence</div>
+      <div class="page-title">Disaster <em>Assistant</em></div>
+      <div class="page-sub">Real-time weather · Zone &amp; shelter data · 🎤 Voice input · 🔊 Speak answers</div>
+    </div>
+
+    <!-- Cards -->
+    <div class="cards-row">
+      <div class="card">
+        <div class="card-label">5-Day Forecast <span id="forecastCity">HYDERABAD</span></div>
+        <div class="forecast-days" id="forecastDays">
+          <div style="flex:1;padding:10px 6px;">
+            <div class="skeleton skel-row" style="width:65%;margin:0 auto 8px;"></div>
+            <div class="skeleton skel-row" style="width:36%;height:16px;margin:0 auto 8px;"></div>
+            <div class="skeleton skel-row" style="width:55%;margin:0 auto;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-label">Zone Risk Summary <span id="riskCity">HYDERABAD</span></div>
+        <div class="risk-rows">
+          <div class="risk-row-item"><span class="risk-row-name" style="color:#C62828;">High</span><div class="risk-bar-bg"><div class="risk-bar-fill" id="barHigh" style="background:#E53935;"></div></div><span class="risk-row-count" id="cntHigh">—</span></div>
+          <div class="risk-row-item"><span class="risk-row-name" style="color:#E65100;">Medium</span><div class="risk-bar-bg"><div class="risk-bar-fill" id="barMed" style="background:#FB8C00;"></div></div><span class="risk-row-count" id="cntMed">—</span></div>
+          <div class="risk-row-item"><span class="risk-row-name" style="color:#2E7D32;">Low</span><div class="risk-bar-bg"><div class="risk-bar-fill" id="barLow" style="background:#43A047;"></div></div><span class="risk-row-count" id="cntLow">—</span></div>
+        </div>
+        <div class="ai-insight"><span class="ai-insight-label">🤖 AI Insight</span><span id="aiInsight">Analysing current conditions…</span></div>
+      </div>
+    </div>
+
+    <!-- BIG CHAT -->
+    <div class="chat-wrap">
+      <div class="chat-section">
+
+        <!-- Chat header -->
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <div class="chat-avatar">🤖</div>
+            <div>
+              <div class="chat-header-title">AI Disaster Assistant</div>
+              <div class="chat-header-sub">Powered by Claude AI · Real-time weather · Shelter &amp; zone data for all cities</div>
+            </div>
+          </div>
+          <div class="chat-header-right">
+            <label class="speak-toggle" title="Auto-speak every AI reply">
+              <input type="checkbox" id="autoSpeak" onchange="autoSpeakEnabled=this.checked"/>
+              🔊 Speak answers
+            </label>
+            <div class="chat-status checking" id="chatStatus">
+              <div class="status-dot checking" id="statusDot"></div>
+              <span id="statusText">Connecting…</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages -->
+        <div class="chat-messages" id="chatMessages">
+          <div class="date-divider"><span>TODAY — <span id="todayDate"></span></span></div>
+        </div>
+
+        <!-- Input -->
+        <div class="chat-input-area">
+          <div class="backend-bar checking" id="backendBar">
+            <div class="backend-bar-left"><div class="backend-dot"></div><span id="backendMsg">Checking server connection…</span></div>
+            <button class="retry-btn" onclick="checkBackend()">Retry</button>
+          </div>
+          <div class="input-row">
+            <textarea id="userQuestion" rows="2"
+              placeholder="Type your question here, or paste text, or use the 🎤 mic to speak…"
+              onkeydown="handleKey(event)"></textarea>
+            <div class="btn-col">
+              <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send &#x2192;</button>
+              <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤 Speak</button>
+            </div>
+          </div>
+          <div class="input-hints">
+            <span class="hint"><kbd>Enter</kbd> send &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> new line &nbsp;·&nbsp; <kbd>Ctrl+V</kbd> paste</span>
+            <span id="micStatus"></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions-wrap">
+      <div class="suggestions-label">Suggested Questions — click to ask</div>
+      <div class="chips">
+        <div class="chip" onclick="askChip(this)">Is it safe to go outside today?</div>
+        <div class="chip" onclick="askChip(this)">What is the flood risk this week?</div>
+        <div class="chip" onclick="askChip(this)">Where is the nearest shelter?</div>
+        <div class="chip" onclick="askChip(this)">List all shelters in this city</div>
+        <div class="chip" onclick="askChip(this)">Any active emergencies nearby?</div>
+        <div class="chip" onclick="askChip(this)">Heat advisory details?</div>
+        <div class="chip" onclick="askChip(this)">Evacuation route for high-risk zones?</div>
+        <div class="chip" onclick="askChip(this)">Which areas have highest disaster risk?</div>
+        <div class="chip" onclick="askChip(this)">Nearest hospital in emergency?</div>
+        <div class="chip" onclick="askChip(this)">Show all high-risk zones</div>
+        <div class="chip" onclick="askChip(this)">What should I do during a flood?</div>
+        <div class="chip" onclick="askChip(this)">Emergency contacts list</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+</div><!-- /body-wrap -->
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">🚑</div>
+    <div class="modal-title" id="modalTitle">Ambulance</div>
+    <div class="modal-sub" id="modalSub">National Emergency Helpline</div>
+    <div class="modal-number" id="modalNumber">108</div>
+    <button class="modal-call-btn" onclick="callNumber()">📞 Call Now</button>
+    <button class="modal-close" onclick="document.getElementById('modalBackdrop').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════
+   CITY DATA — shelters + zones
+════════════════════════════════ */
+const CITY_DATA = {
+  hyderabad: {
+    lat:17.385, lon:78.4867, name:'Hyderabad',
+    zones: {
+      high: ['Dharavi Colony (Malakpet)','Nallakunta Slums','Musheerabad','Bholakpur','Toli Chowki Nala Belt','Uppuguda','Chandrayangutta Low-lying Areas','Amberpet Nala Zone'],
+      medium: ['Santoshnagar','Dilsukhnagar Periphery','Barkas','Uppal Kalan'],
+      low: ['Secunderabad North','Madhapur','Gachibowli','Jubilee Hills'],
+    },
+    shelters: [
+      {name:'GHMC Relief Centre — LB Nagar', address:'Near LB Nagar Circle, Hyderabad', capacity:'500 persons', contact:'040-21111111'},
+      {name:'Municipal School Shelter — Malakpet', address:'Malakpet MCD School, Hyderabad', capacity:'300 persons', contact:'040-21222222'},
+      {name:'GHMC Shelter — Musheerabad', address:'Musheerabad Community Hall', capacity:'400 persons', contact:'040-21333333'},
+      {name:'Red Cross Centre — Nampally', address:'Red Cross Bhavan, Nampally', capacity:'600 persons', contact:'040-24731955'},
+      {name:'SDRF Camp — Uppal', address:'Uppal Stadium Grounds', capacity:'800 persons', contact:'040-23456789'},
+    ],
+    emergency: {ambulance:'108', police:'100', fire:'101', ndma:'1078', ghmc:'040-21111111'}
+  },
+  delhi: {
+    lat:28.6139, lon:77.209, name:'Delhi',
+    zones: {
+      high: ['Yamuna Khadar Slums','Seemapuri','Trilokpuri','Kalyanpuri','Mustafabad','Seelampur','Bhalswa Jahangirpuri','Savda Ghevra'],
+      medium: ['Shahdara East','Gokulpuri','Nand Nagri','Laxmi Nagar Periphery'],
+      low: ['Dwarka','Rohini Sector 1','Saket','Vasant Kunj'],
+    },
+    shelters: [
+      {name:'Delhi Govt Night Shelter — Yamuna Bank', address:'Yamuna Bank Metro Station Area', capacity:'700 persons', contact:'011-23392200'},
+      {name:'DUSIB Shelter — Seemapuri', address:'Seemapuri Ring Road, Delhi', capacity:'500 persons', contact:'011-22004488'},
+      {name:'MCD Relief Camp — Trilokpuri', address:'Block 20, Trilokpuri, Delhi', capacity:'450 persons', contact:'011-23416969'},
+      {name:'Red Cross Shelter — ITO', address:'Red Cross Bhavan, ITO', capacity:'800 persons', contact:'011-23711551'},
+      {name:'Civil Defence Camp — Shahdara', address:'Shahdara District HQ', capacity:'600 persons', contact:'011-22323040'},
+    ],
+    emergency: {ambulance:'108', police:'100', fire:'101', ndma:'1078', ddma:'011-23392200'}
+  },
+  mumbai: {
+    lat:19.076, lon:72.8777, name:'Mumbai',
+    zones: {
+      high: ['Dharavi Slum','Kurla East Low-lying','Govandi','Mankhurd','Malvani (Malad)','Deonar','Shivajinagar (Govandi)','Ambujwadi (Malad)'],
+      medium: ['Bhandup West Nala','Vikhroli East','Chembur Periphery','Jogeshwari East'],
+      low: ['Bandra West','Andheri West','Powai','Kandivali West'],
+    },
+    shelters: [
+      {name:'BMC Shelter — Dharavi', address:'Near Dharavi Main Road, Sion', capacity:'1000 persons', contact:'022-24132222'},
+      {name:'MCGM Relief Centre — Kurla', address:'Kurla Municipal School', capacity:'600 persons', contact:'022-25018000'},
+      {name:'Red Cross Mumbai — Matunga', address:'Red Cross Bhavan, Matunga', capacity:'700 persons', contact:'022-24014390'},
+      {name:'NDRF Base — Colaba', address:'Colaba Causeway Area', capacity:'Ready to deploy', contact:'022-22846740'},
+      {name:'Cyclone Shelter — Malvani', address:'Malvani Municipal Ground, Malad', capacity:'900 persons', contact:'022-28814000'},
+    ],
+    emergency: {ambulance:'108', police:'100', fire:'101', ndma:'1078', bmc:'1916'}
+  },
+  chennai: {
+    lat:13.0827, lon:80.2707, name:'Chennai',
+    zones: {
+      high: ['Buckingham Canal Belt','Vyasarpadi','Kolathur Low-lying','Tiruvottiyur'],
+      medium: ['Ambattur Industrial','Manali North','Madhavaram','Perambur Periphery','Kodambakkam Nala','Tondiarpet East','Royapuram Coastal','Thiruvanmiyur'],
+      low: ['Anna Nagar','Adyar','Velachery','Nungambakkam'],
+    },
+    shelters: [
+      {name:'GCC Shelter — Vyasarpadi', address:'Vyasarpadi School Grounds', capacity:'600 persons', contact:'044-25384510'},
+      {name:'Corporation Shelter — Kolathur', address:'Kolathur Municipal Market', capacity:'500 persons', contact:'044-25382222'},
+      {name:'Red Cross Centre — Egmore', address:'Red Cross Bhavan, Egmore', capacity:'700 persons', contact:'044-28191616'},
+      {name:'SDRF Camp — Tiruvottiyur', address:'Tiruvottiyur Beach Road', capacity:'800 persons', contact:'044-25342000'},
+      {name:'Cyclone Centre — Marina Beach', address:'Marina Beach Grounds', capacity:'2000 persons', contact:'044-28543300'},
+    ],
+    emergency: {ambulance:'108', police:'100', fire:'101', ndma:'1078', gcc:'1913'}
+  },
+  jammu: {
+    lat:32.7266, lon:74.857, name:'Jammu & Kashmir',
+    zones: {
+      high: ['Tawi Riverbank Settlements','Talab Tillo','Rajpura Slum','Gole Gujral','Gangyal Industrial Slums','Rehari Colony Flood Zone','Barnai Nullah Area','Old Jammu Walled City'],
+      medium: ['Bantalab','Sidhra','Channi Himmat','Parade Ground Area'],
+      low: ['Trikuta Nagar','Gandhi Nagar','Bakshi Nagar','Shastri Nagar'],
+    },
+    shelters: [
+      {name:'JMC Relief Camp — Talab Tillo', address:'Talab Tillo Ground, Jammu', capacity:'500 persons', contact:'0191-2542424'},
+      {name:'Govt Shelter — Rehari Colony', address:'Rehari Colony Panchayat Ghar', capacity:'300 persons', contact:'0191-2532100'},
+      {name:'SDRF Centre — Gandhi Nagar', address:'SDRF HQ Gandhi Nagar, Jammu', capacity:'600 persons', contact:'0191-2520044'},
+      {name:'Red Cross Shelter — Jammu', address:'Red Cross Bhavan, Residency Road', capacity:'400 persons', contact:'0191-2543277'},
+      {name:'Flood Relief Camp — Gangyal', address:'Gangyal Industrial Area Ground', capacity:'700 persons', contact:'0191-2500100'},
+    ],
+    emergency: {ambulance:'108', police:'100', fire:'101', ndma:'1078', jmc:'0191-2542424'}
+  }
+};
+
+/* ════════════════════════════════
+   CONFIG
+════════════════════════════════ */
+const BACKEND = 'http://localhost:8000';
+let currentCity   = 'hyderabad';
+let backendOnline = false;
+let isStreaming   = false;
+let forecastCache = {};
+let recognition   = null;
+let autoSpeakEnabled = false;
+let currentUtterance = null;
+
+/* ════════════════════════════════
+   INIT
+════════════════════════════════ */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('selectedCity');
+  if(saved && CITY_DATA[saved]){ currentCity=saved; document.getElementById('citySelect').value=saved; }
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  window.speechSynthesis.onvoiceschanged = ()=>{};
+  const ta = document.getElementById('userQuestion');
+  ta.addEventListener('input',()=>{ ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,160)+'px'; });
+  checkBackend();
+  loadForecast(currentCity);
+  loadRiskSummary(currentCity);
+  addWelcomeMessage();
+});
+
+/* ════════════════════════════════
+   SPEECH SYNTHESIS
+════════════════════════════════ */
+function speakText(text, btn){
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  if(currentUtterance && btn){ btn.classList.remove('speaking'); btn.textContent='🔊 Speak'; currentUtterance=null; return; }
+  const clean = text.replace(/<[^>]+>/g,' ').replace(/\*\*/g,'').replace(/•/g,'').replace(/\n/g,'. ').replace(/\s+/g,' ').trim();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang='en-IN'; u.rate=0.88; u.pitch=1.05; u.volume=1;
+  const v=window.speechSynthesis.getVoices();
+  const pv=v.find(x=>x.lang==='en-IN')||v.find(x=>x.lang.startsWith('en'))||v[0];
+  if(pv) u.voice=pv;
+  u.onstart=()=>{ currentUtterance=u; if(btn){btn.classList.add('speaking');btn.innerHTML='⏹ Stop';} };
+  u.onend=u.onerror=()=>{ currentUtterance=null; if(btn){btn.classList.remove('speaking');btn.innerHTML='🔊 Speak';} };
+  window.speechSynthesis.speak(u);
+}
+
+/* ════════════════════════════════
+   BACKEND
+════════════════════════════════ */
+async function checkBackend(){
+  setBS('checking','Checking server connection…');
+  try{
+    const r=await fetch(`${BACKEND}/api/stats`,{signal:AbortSignal.timeout(3000)});
+    if(r.ok){backendOnline=true;setBS('online','Backend connected · Claude AI ready');setSt('online','ONLINE');}
+    else throw new Error();
+  }catch{ backendOnline=false;setBS('offline','Backend offline · Smart fallback active — run: uvicorn server:app --reload --port 8000');setSt('offline','FALLBACK');}
+}
+function setBS(s,m){const b=document.getElementById('backendBar');b.className='backend-bar '+s;document.getElementById('backendMsg').textContent=m;}
+function setSt(s,t){const e=document.getElementById('chatStatus'),d=document.getElementById('statusDot'),x=document.getElementById('statusText');e.className='chat-status '+s;d.className='status-dot '+s;x.textContent=t;}
+
+/* ════════════════════════════════
+   CITY CHANGE
+════════════════════════════════ */
+function onCityChange(){
+  currentCity=document.getElementById('citySelect').value;
+  localStorage.setItem('selectedCity',currentCity);
+  const cn=CITY_DATA[currentCity].name.toUpperCase();
+  document.getElementById('forecastCity').textContent=cn;
+  document.getElementById('riskCity').textContent=cn;
+  forecastCache={};
+  loadForecast(currentCity); loadRiskSummary(currentCity);
+  const city=CITY_DATA[currentCity].name;
+  addMsg('ai',`Switched to **${city}**. I now have zone risk data, shelter locations, and live weather for this city. Ask me anything!`);
+}
+
+/* ════════════════════════════════
+   FORECAST
+════════════════════════════════ */
+function wcIcon(c){if(c===0)return'☀️';if(c<=2)return'⛅';if(c<=3)return'☁️';if(c<=48)return'🌫️';if(c<=67)return'🌧️';if(c<=77)return'❄️';if(c<=82)return'🌦️';if(c<=99)return'⛈️';return'🌤️';}
+function wcLabel(c){if(c===0)return'Clear';if(c<=2)return'P.Cloudy';if(c<=3)return'Overcast';if(c<=48)return'Foggy';if(c<=57)return'Drizzle';if(c<=67)return'Rainy';if(c<=77)return'Snowy';if(c<=82)return'Showers';if(c<=99)return'Storm';return'Cloudy';}
+
+async function loadForecast(city){
+  const{lat,lon}=CITY_DATA[city];
+  showForecastSkeleton();
+  try{
+    const d=await(await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FKolkata&forecast_days=5`)).json();
+    forecastCache[city]=d; renderForecast(d);
+  }catch{document.getElementById('forecastDays').innerHTML='<div style="padding:14px;font-size:11px;color:#bbb;font-family:IBM Plex Mono,monospace;">Unable to load forecast</div>';}
+}
+function showForecastSkeleton(){
+  let h='';
+  for(let i=0;i<5;i++)h+=`<div style="flex:1;padding:8px 3px;border-right:1px solid #f0ebe0${i===4?';border:none':''};">
+    <div class="skeleton skel-row" style="width:65%;margin:0 auto 7px;"></div>
+    <div class="skeleton skel-row" style="width:35%;height:14px;margin:0 auto 7px;"></div>
+    <div class="skeleton skel-row" style="width:55%;margin:0 auto;"></div></div>`;
+  document.getElementById('forecastDays').innerHTML=h;
+}
+function renderForecast(data){
+  const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html='';
+  data.daily.time.forEach((ds,i)=>{
+    const d=new Date(ds);
+    const nm=i===0?'Today':DN[d.getDay()];
+    const wc=data.daily.weathercode[i];
+    const tMax=Math.round(data.daily.temperature_2m_max[i]);
+    const tMin=Math.round(data.daily.temperature_2m_min[i]);
+    const rain=data.daily.precipitation_probability_max[i]||0;
+    html+=`<div class="forecast-day${i===0?' today':''}">
+      <div class="fd-name">${nm}</div><div class="fd-icon">${wcIcon(wc)}</div>
+      <div class="fd-temp">${tMax}°</div><div class="fd-cond">${wcLabel(wc)}</div>
+      <div class="fd-rain">💧${rain}%</div>
+      <div style="font-size:9px;color:#ccc;font-family:'IBM Plex Mono',monospace;margin-top:2px;">${tMin}°↓</div>
+    </div>`;
+  });
+  document.getElementById('forecastDays').innerHTML=html;
+  generateInsight(data);
+}
+
+/* ════════════════════════════════
+   RISK SUMMARY
+════════════════════════════════ */
+function loadRiskSummary(city){
+  const d=CITY_DATA[city];
+  const h=d.zones.high.length, m=d.zones.medium.length, l=d.zones.low.length;
+  const t=h+m+l;
+  setTimeout(()=>{
+    document.getElementById('cntHigh').textContent=h;
+    document.getElementById('cntMed').textContent=m;
+    document.getElementById('cntLow').textContent=l;
+    document.getElementById('barHigh').style.width=(h/t*100)+'%';
+    document.getElementById('barMed').style.width=(m/t*100)+'%';
+    document.getElementById('barLow').style.width=(l/t*100)+'%';
+  },300);
+}
+
+/* ════════════════════════════════
+   AI INSIGHT
+════════════════════════════════ */
+function generateInsight(data){
+  const city=CITY_DATA[currentCity].name;
+  const maxRain=Math.max(...data.daily.precipitation_probability_max);
+  const maxTemp=Math.max(...data.daily.temperature_2m_max.map(Math.round));
+  const hasStorm=data.daily.weathercode.some(c=>c>=80);
+  const ri=data.daily.precipitation_probability_max.indexOf(maxRain);
+  const DN=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const day=ri===0?'today':DN[new Date(data.daily.time[ri]).getDay()];
+  let t='';
+  if(hasStorm)t=`Thunderstorm likely on ${day} — flood danger elevated in high-risk zones of ${city}.`;
+  else if(maxRain>=70)t=`Heavy rain (${maxRain}%) expected on ${day}. Low-lying slum areas at increased flood risk.`;
+  else if(maxRain>=40)t=`Moderate rainfall forecast. Flood-prone zones should remain on yellow alert.`;
+  else if(maxTemp>=42)t=`Extreme heat expected (${maxTemp}°C). Heatwave risk HIGH for dense settlements.`;
+  else if(maxTemp>=38)t=`High temperatures (${maxTemp}°C). Heat advisory in effect for ${city}.`;
+  else t=`Weather in ${city} appears stable this week. Routine monitoring recommended.`;
+  document.getElementById('aiInsight').textContent=t;
+}
+
+/* ════════════════════════════════
+   CHAT
+════════════════════════════════ */
+function getTime(){return new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});}
+
+function addWelcomeMessage(){
+  const d=CITY_DATA[currentCity];
+  const txt=`Hello! I'm your **AI Disaster Preparedness Assistant** for ${d.name} and all cities in our network.\n\nI have built-in knowledge of:\n• 🔴 ${d.zones.high.length} High-risk zones\n• 🟠 ${d.zones.medium.length} Medium-risk zones\n• 🟢 ${d.zones.low.length} Low-risk zones\n• 🏠 ${d.shelters.length} Shelter locations with addresses & contacts\n• 📍 Emergency services numbers\n\nAsk me about shelter locations, evacuation routes, current weather risk, or what to do in any disaster. Use 🎤 Speak button to talk to me, and enable 🔊 Speak answers to hear responses — great for older residents.`;
+  addMsg('ai',txt);
+}
+
+function formatMsgText(text){
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\n/g,'<br/>');
+}
+
+function addMsg(role, text){
+  const box=document.getElementById('chatMessages');
+  const el=document.createElement('div');
+  el.className=`msg ${role}`;
+  const plain=text.replace(/\*\*(.*?)\*\*/g,'$1').replace(/<[^>]+>/g,'');
+  const nameLabel=role==='ai'?'🤖 AI Assistant':'You';
+  const footerExtra=role==='ai'?`<button class="speak-msg-btn" onclick="speakText(this.dataset.t,this)" data-t="${plain.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">🔊 Speak</button>`:'';
+
+  el.innerHTML=`
+    <div class="msg-avatar">${role==='ai'?'🤖':'YO'}</div>
+    <div class="msg-body">
+      <div class="msg-name">${nameLabel}</div>
+      <div class="msg-bubble">${formatMsgText(text)}</div>
+      <div class="msg-footer"><span class="msg-time">${getTime()}</span>${footerExtra}</div>
+    </div>`;
+  box.appendChild(el);
+  box.scrollTop=box.scrollHeight;
+  if(role==='ai'&&autoSpeakEnabled) setTimeout(()=>speakText(plain,null),400);
+  return el;
+}
+
+function showTyping(){
+  const box=document.getElementById('chatMessages');
+  const el=document.createElement('div');el.className='msg ai';el.id='typingEl';
+  el.innerHTML=`<div class="msg-avatar">🤖</div>
+    <div class="msg-body">
+      <div class="msg-name">🤖 AI Assistant</div>
+      <div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
+    </div>`;
+  box.appendChild(el);box.scrollTop=box.scrollHeight;
+}
+function hideTyping(){document.getElementById('typingEl')?.remove();}
+
+// stream helpers kept as no-ops for compatibility
+function createStreamBubble(){}
+function appendStream(){}
+function finaliseStream(){}
+
+/* ════════════════════════════════
+   SEND
+════════════════════════════════ */
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+
+async function sendMessage(){
+  const ta=document.getElementById('userQuestion');
+  const q=ta.value.trim();
+  if(!q||isStreaming) return;
+  ta.value=''; ta.style.height='';
+  isStreaming=true;
+  document.getElementById('sendBtn').disabled=true;
+  addMsg('user', q);
+  showTyping();
+
+  if(backendOnline){
+    try{
+      await streamFromBackend(q);
+    } catch(e){
+      console.warn('Backend failed:', e);
+      hideTyping();
+      typewriterMsg(smartFallback(q));
+    }
+  } else {
+    await new Promise(r=>setTimeout(r,700));
+    hideTyping();
+    typewriterMsg(smartFallback(q));
+  }
+
+  isStreaming=false;
+  document.getElementById('sendBtn').disabled=false;
+}
+
+// Stream from backend and display word-by-word as it arrives
+async function streamFromBackend(q){
+  const res = await fetch(`${BACKEND}/api/chat`, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({question:q, city:currentCity})
+  });
+
+  if(!res.ok) throw new Error('HTTP '+res.status);
+
+  // Create the message bubble BEFORE reading stream
+  hideTyping();
+  const box = document.getElementById('chatMessages');
+  const msgEl = document.createElement('div');
+  msgEl.className = 'msg ai';
+  msgEl.innerHTML = `
+    <div class="msg-avatar">🤖</div>
+    <div class="msg-body">
+      <div class="msg-name">🤖 AI Assistant</div>
+      <div class="msg-bubble" id="liveBubble"><span class="cursor"></span></div>
+      <div class="msg-footer" id="liveFooter"><span class="msg-time">${getTime()}</span></div>
+    </div>`;
+  box.appendChild(msgEl);
+  box.scrollTop = box.scrollHeight;
+
+  const bubble = document.getElementById('liveBubble');
+  let fullText = '';
+  let timedOut = false;
+
+  // 10s timeout — if nothing comes, use fallback
+  const timer = setTimeout(()=>{
+    timedOut = true;
+    msgEl.remove();
+    typewriterMsg(smartFallback(q));
+  }, 10000);
+
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '';
+
+  while(true){
+    const {done, value} = await reader.read();
+    if(done || timedOut) break;
+    buf += dec.decode(value, {stream:true});
+    const lines = buf.split('\n');
+    buf = lines.pop(); // keep incomplete line in buffer
+    for(const line of lines){
+      if(!line.startsWith('data: ')) continue;
+      const raw = line.slice(6).trim();
+      if(raw === '[DONE]'){
+        clearTimeout(timer);
+        // Finalise bubble
+        bubble.querySelector('.cursor')?.remove();
+        const plain = bubble.innerText || bubble.textContent || '';
+        const f = document.getElementById('liveFooter');
+        if(f){
+          f.innerHTML = `<span class="msg-time">${getTime()}</span>
+            <button class="speak-msg-btn"
+              onclick="speakText(this.dataset.t,this)"
+              data-t="${plain.replace(/"/g,'&quot;')}">🔊 Speak</button>`;
+          f.removeAttribute('id');
+        }
+        bubble.removeAttribute('id');
+        if(autoSpeakEnabled) setTimeout(()=>speakText(plain,null),300);
+        return;
+      }
+      try{
+        const obj = JSON.parse(raw);
+        const chunk = obj.text || obj.content || obj.delta || '';
+        if(chunk){
+          clearTimeout(timer); // got data, cancel timeout
+          fullText += chunk;
+          // Append to bubble live
+          bubble.querySelector('.cursor')?.remove();
+          bubble.innerHTML += chunk.replace(/\n/g,'<br/>');
+          const cur = document.createElement('span');
+          cur.className = 'cursor';
+          bubble.appendChild(cur);
+          box.scrollTop = box.scrollHeight;
+        }
+      } catch(e){
+        // Not JSON — could be raw text
+        if(raw && raw !== '[DONE]'){
+          clearTimeout(timer);
+          fullText += raw;
+          bubble.querySelector('.cursor')?.remove();
+          bubble.innerHTML += raw.replace(/\n/g,'<br/>');
+          const cur = document.createElement('span');
+          cur.className = 'cursor';
+          bubble.appendChild(cur);
+          box.scrollTop = box.scrollHeight;
+        }
+      }
+    }
+  }
+
+  clearTimeout(timer);
+  // If we got here without [DONE] and have text, finalise
+  if(fullText.trim() && !timedOut){
+    bubble.querySelector('.cursor')?.remove();
+    const f = document.getElementById('liveFooter');
+    if(f){
+      f.innerHTML = `<span class="msg-time">${getTime()}</span>
+        <button class="speak-msg-btn"
+          onclick="speakText(this.dataset.t,this)"
+          data-t="${fullText.replace(/"/g,'&quot;')}">🔊 Speak</button>`;
+      f.removeAttribute('id');
+    }
+    bubble.removeAttribute('id');
+    if(autoSpeakEnabled) setTimeout(()=>speakText(fullText,null),300);
+  } else if(!fullText.trim() && !timedOut){
+    // Nothing came through at all — remove empty bubble, show fallback
+    msgEl.remove();
+    typewriterMsg(smartFallback(q));
+  }
+}
+
+// Typewriter effect for smooth message display
+function typewriterMsg(fullText){
+  const box=document.getElementById('chatMessages');
+  const el=document.createElement('div');
+  el.className='msg ai';
+  const plain=fullText.replace(/\*\*(.*?)\*\*/g,'$1').replace(/<[^>]+>/g,'');
+  el.innerHTML=`
+    <div class="msg-avatar">🤖</div>
+    <div class="msg-body">
+      <div class="msg-name">🤖 AI Assistant</div>
+      <div class="msg-bubble" id="twBubble"></div>
+      <div class="msg-footer" id="twFooter"><span class="msg-time">${getTime()}</span></div>
+    </div>`;
+  box.appendChild(el);
+  box.scrollTop=box.scrollHeight;
+
+  const bubble=document.getElementById('twBubble');
+  const formatted=formatMsgText(fullText);
+
+  // Show text in chunks for smooth typewriter feel
+  let i=0;
+  const chars=formatted.split('');
+  function next(){
+    if(i>=chars.length){
+      // Done — add speak button
+      const f=document.getElementById('twFooter');
+      if(f){
+        f.innerHTML=`<span class="msg-time">${getTime()}</span>
+          <button class="speak-msg-btn" onclick="speakText(this.dataset.t,this)"
+            data-t="${plain.replace(/"/g,'&quot;').replace(/'/g,'&#39;')}">🔊 Speak</button>`;
+        f.removeAttribute('id');
+      }
+      bubble.removeAttribute('id');
+      if(autoSpeakEnabled) setTimeout(()=>speakText(plain,null),300);
+      return;
+    }
+    // Add 8 chars at a time for speed
+    const chunk=chars.slice(i,i+8).join('');
+    bubble.innerHTML+=chunk;
+    i+=8;
+    box.scrollTop=box.scrollHeight;
+    setTimeout(next, 12);
+  }
+  next();
+}
+
+/* ════════════════════════════════
+   SMART FALLBACK — full city data
+════════════════════════════════ */
+function smartFallback(q){
+  const lq=q.toLowerCase();
+  const cd=CITY_DATA[currentCity];
+  const city=cd.name;
+  const fc=forecastCache[currentCity];
+  const maxTemp=fc?Math.round(Math.max(...fc.daily.temperature_2m_max)):null;
+  const maxRain=fc?Math.max(...fc.daily.precipitation_probability_max):null;
+
+  // Shelter queries
+  if(lq.includes('shelter')||lq.includes('relief centre')||lq.includes('relief center')||lq.includes('safe place')){
+    let resp=`🏠 **Emergency Shelters — ${city}**\n\nHere are all ${cd.shelters.length} shelters with addresses and contact numbers:\n\n`;
+    cd.shelters.forEach((s,i)=>{
+      resp+=`**${i+1}. ${s.name}**\n📍 ${s.address}\n👥 Capacity: ${s.capacity}\n📞 Contact: ${s.contact}\n\n`;
+    });
+    resp+=`📞 **Quick Helplines:**\nAmbulance: ${cd.emergency.ambulance} | Police: ${cd.emergency.police} | NDMA: ${cd.emergency.ndma}`;
+    return resp;
+  }
+
+  // High risk zones
+  if(lq.includes('high risk')||lq.includes('high-risk')||lq.includes('dangerous area')||lq.includes('most dangerous')){
+    return `🔴 **High-Risk Zones — ${city}** (${cd.zones.high.length} zones)\n\nThese areas have the highest vulnerability to floods, fire, and structural collapse:\n\n${cd.zones.high.map((z,i)=>`**${i+1}.** ${z}`).join('\n')}\n\n⚠️ Residents in these zones should know their nearest shelter and keep emergency bags ready.\n📞 NDMA Helpline: ${cd.emergency.ndma}`;
+  }
+
+  // All zones
+  if(lq.includes('all zone')||lq.includes('zone list')||lq.includes('show zone')||lq.includes('risk zone')){
+    return `📍 **All Risk Zones — ${city}**\n\n🔴 **High Risk (${cd.zones.high.length} zones):**\n${cd.zones.high.map(z=>`• ${z}`).join('\n')}\n\n🟠 **Medium Risk (${cd.zones.medium.length} zones):**\n${cd.zones.medium.map(z=>`• ${z}`).join('\n')}\n\n🟢 **Low Risk (${cd.zones.low.length} zones):**\n${cd.zones.low.map(z=>`• ${z}`).join('\n')}`;
+  }
+
+  // Flood
+  if(lq.includes('flood')||lq.includes('rain')||lq.includes('water')){
+    const risk=maxRain>=60?'HIGH ⚠️':maxRain>=30?'MODERATE':'LOW ✅';
+    return `🌧️ **Flood Risk — ${city}: ${risk}**\n\n${maxRain?`• Peak rain probability this week: **${maxRain}%**`:''}\n• Most vulnerable zones: ${cd.zones.high.slice(0,3).join(', ')}\n• Avoid low-lying areas and nala zones\n\n🏠 **Nearest Shelters:**\n${cd.shelters.slice(0,2).map(s=>`• ${s.name} — 📞 ${s.contact}`).join('\n')}\n\n📞 Disaster Relief: **${cd.emergency.ndma}**`;
+  }
+
+  // Heat
+  if(lq.includes('heat')||lq.includes('temperature')||lq.includes('hot')){
+    return `🌡️ **Heat Advisory — ${city}**\n\n${maxTemp?`• Peak temperature this week: **${maxTemp}°C**`:''}\n${maxTemp>=40?'• ⚠️ EXTREME HEAT — Stay indoors 12pm–4pm\n• Drink water every 30 minutes':maxTemp>=36?'• Heat advisory in effect — stay hydrated':''}\n• Dense slum areas face highest heat risk\n• Elderly and children most vulnerable\n\n📞 Ambulance: **${cd.emergency.ambulance}** | NDMA: **${cd.emergency.ndma}**`;
+  }
+
+  // Safe / outside
+  if(lq.includes('safe')||lq.includes('outside')||lq.includes('go out')){
+    const highZones=cd.zones.high.slice(0,3).join(', ');
+    return `🛡️ **Safety Check — ${city}**\n\n• ${cd.zones.high.length} HIGH risk zones — avoid if possible\n  (e.g. ${highZones})\n• ${cd.zones.medium.length} MEDIUM risk zones — exercise caution\n${maxTemp>=38?'• 🌡️ Heat advisory active — limit outdoor time\n':''}${maxRain>=60?'• 🌧️ Heavy rain expected — waterlogging risk\n':''}• Always follow official local authority alerts\n\n📞 Police: **${cd.emergency.police}** | NDMA: **${cd.emergency.ndma}**`;
+  }
+
+  // Evacuation
+  if(lq.includes('evacuate')||lq.includes('evacuation')||lq.includes('escape')||lq.includes('route')){
+    return `🚨 **Evacuation Guide — ${city}**\n\n**Step 1:** Call NDMA helpline **${cd.emergency.ndma}** immediately\n**Step 2:** Move to the nearest shelter:\n${cd.shelters.slice(0,3).map(s=>`  • **${s.name}**\n    📍 ${s.address}\n    📞 ${s.contact}`).join('\n')}\n**Step 3:** Take documents, medicine, water\n**Step 4:** Do not re-enter until authorities clear the area\n\n📞 Police: **${cd.emergency.police}** | Ambulance: **${cd.emergency.ambulance}**`;
+  }
+
+  // Hospital / medical
+  if(lq.includes('hospital')||lq.includes('medical')||lq.includes('ambulance')||lq.includes('doctor')){
+    return `🏥 **Medical Emergency — ${city}**\n\n• 📞 Ambulance: **${cd.emergency.ambulance}** (free, 24/7)\n• 📞 National Emergency: **112**\n• 📞 NDMA: **${cd.emergency.ndma}**\n\nCall **108** immediately — operators will dispatch the nearest ambulance and guide you to the closest hospital.\n\n💡 For non-emergency situations, local government hospitals in ${cd.zones.low[0]} area are generally accessible.`;
+  }
+
+  // Emergency contacts
+  if(lq.includes('contact')||lq.includes('number')||lq.includes('helpline')||lq.includes('emergency number')){
+    const em=cd.emergency;
+    return `📞 **Emergency Contacts — ${city}**\n\n• 🚑 Ambulance: **${em.ambulance}**\n• 🚓 Police: **${em.police}**\n• 🔥 Fire Brigade: **${em.fire}**\n• 🏠 NDMA Helpline: **${em.ndma}**\n• 🏙️ Local Authority: **${Object.values(em).pop()}**\n\n💡 Save these numbers on your phone now — in a disaster there is no time to search.`;
+  }
+
+  // Disaster steps
+  if(lq.includes('what should i do')||lq.includes('what to do')||lq.includes('during flood')||lq.includes('during earthquake')||lq.includes('during fire')){
+    if(lq.includes('flood')){
+      return `🌊 **What to do during a Flood — ${city}**\n\n1. Move to **higher ground immediately**\n2. Do NOT walk in moving water (6 inches can knock you down)\n3. Turn off electricity at the main breaker\n4. Call NDMA **${cd.emergency.ndma}**\n5. Go to nearest shelter:\n   **${cd.shelters[0].name}**\n   📍 ${cd.shelters[0].address}\n   📞 ${cd.shelters[0].contact}\n6. Do not return home until authorities say it is safe`;
+    }
+    if(lq.includes('earthquake')){
+      return `🏚️ **What to do during an Earthquake**\n\n1. **DROP** to hands and knees\n2. Take **COVER** under a sturdy table or against an interior wall\n3. **HOLD ON** until shaking stops\n4. Stay away from windows and exterior walls\n5. After shaking stops, evacuate carefully and call **${cd.emergency.ndma}**\n6. Check for injuries before moving`;
+    }
+    return `🚨 **General Emergency Steps — ${city}**\n\n1. Stay calm and assess the situation\n2. Call emergency services: **${cd.emergency.ambulance}** or **112**\n3. Move to a safe location — nearest shelter:\n   ${cd.shelters[0].name}\n4. Follow instructions from authorities\n5. Help elderly and disabled neighbours if safe to do so`;
+  }
+
+  // Default
+  return `I can help you with detailed information about **${city}**. I have data on:\n\n• 🏠 **${cd.shelters.length} shelter locations** with addresses\n• 🔴 **${cd.zones.high.length} high-risk zones** by name\n• 🟠 **${cd.zones.medium.length} medium-risk zones**\n• 📞 All emergency contacts\n• 🌧️ Real-time weather and flood risk\n\nTry asking: *"Where is the nearest shelter?"*, *"List all high-risk zones"*, or *"What should I do during a flood?"*\n\n💡 Start **server.py** for full Claude AI: uvicorn server:app --reload --port 8000`;
+}
+
+function askChip(el){
+  const ta=document.getElementById('userQuestion');
+  ta.value=el.textContent;ta.focus();
+  sendMessage();
+}
+
+/* ════════════════════════════════
+   MIC
+════════════════════════════════ */
+function toggleMic(){
+  const btn=document.getElementById('micBtn');
+  const st=document.getElementById('micStatus');
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    alert('Voice input not supported. Please use Google Chrome.');return;
+  }
+  if(recognition){recognition.stop();recognition=null;btn.classList.remove('listening');btn.innerHTML='🎤 Speak';st.textContent='';return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();recognition.lang='en-IN';recognition.interimResults=true;recognition.continuous=false;
+  recognition.onstart=()=>{btn.classList.add('listening');btn.innerHTML='🔴 Stop';st.textContent='🎤 Listening — speak now…';};
+  recognition.onresult=e=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript;}
+    const ta=document.getElementById('userQuestion');ta.value=final||interim;
+    st.textContent=final?'✅ Got it: "'+ta.value.slice(0,50)+'"':'🎤 Hearing: '+interim;
+    if(final){recognition=null;btn.classList.remove('listening');btn.innerHTML='🎤 Speak';setTimeout(()=>{st.textContent='';sendMessage();},500);}
+  };
+  recognition.onerror=e=>{btn.classList.remove('listening');btn.innerHTML='🎤 Speak';st.textContent='';recognition=null;if(e.error!=='aborted')alert('Mic error: '+e.error);};
+  recognition.onend=()=>{if(recognition){recognition=null;btn.classList.remove('listening');btn.innerHTML='🎤 Speak';st.textContent='';}};
+  recognition.start();
+}
+
+/* ════════════════════════════════
+   MODAL
+════════════════════════════════ */
+const EM={ambulance:{icon:'🚑',title:'Ambulance',sub:'National Emergency Helpline',number:'108'},police:{icon:'🚓',title:'Police',sub:'National Police Helpline',number:'100'},fire:{icon:'🔥',title:'Fire Brigade',sub:'National Fire Helpline',number:'101'},shelter:{icon:'🏠',title:'Nearest Shelter',sub:'Disaster Relief Helpline',number:'1078'}};
+let activeNum='';
+function openModal(t){const d=EM[t];document.getElementById('modalIcon').textContent=d.icon;document.getElementById('modalTitle').textContent=d.title;document.getElementById('modalSub').textContent=d.sub;document.getElementById('modalNumber').textContent=d.number;activeNum=d.number;document.getElementById('modalBackdrop').classList.add('open');}
+function closeModal(e){if(e.target===document.getElementById('modalBackdrop'))document.getElementById('modalBackdrop').classList.remove('open');}
+function callNumber(){window.location.href='tel:'+activeNum;}
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+/* ── Reset ── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: #f5f2ed;
+}
+
+/* ══════════════════════════════════
+   AI PAGE STYLES (ai.html)
+══════════════════════════════════ */
+.ai-container {
+  padding: 24px;
+  width: 100%;
+  background: #f5f2ed;
+  min-height: 100%;
+}
+
+.top-cards {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.weather-card,
+.alert-card {
+  flex: 1;
+  background: #fff;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e8e2d8;
+  box-shadow: 0 2px 8px rgba(211,47,47,0.05);
+}
+
+.weather-card h3,
+.alert-card h3 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: #D32F2F;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.assistant-box {
+  background: #fff;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #e8e2d8;
+  box-shadow: 0 2px 8px rgba(211,47,47,0.05);
+}
+
+#chatArea {
+  height: 300px;
+  overflow-y: auto;
+  border: 1px solid #e8e2d8;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 15px 0;
+  background: #faf8f4;
+}
+
+.chat-controls {
+  display: flex;
+  gap: 10px;
+}
+
+#userQuestion {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #e8e2d8;
+  border-radius: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  outline: none;
+  background: #faf8f4;
+}
+
+#userQuestion:focus { border-color: #D32F2F; }
+
+#sendBtn, #micBtn {
+  padding: 10px 20px;
+  cursor: pointer;
+  background: #D32F2F;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+
+#sendBtn:hover, #micBtn:hover { background: #B71C1C; }
+
+/* ── Google Maps InfoWindow override ── */
+.gm-style .gm-style-iw-c {
+  border-radius: 10px !important;
+  border: 1px solid #e8e2d8 !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+  font-family: 'IBM Plex Sans', sans-serif !important;
+  padding: 4px !important;
+}
+
+.gm-style .gm-style-iw-t::after { display: none !important; }
+
+.info-popup {
+  padding: 10px 14px;
+  min-width: 200px;
+}
+
+.info-popup h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 15px;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.info-popup .info-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #555;
+}
+
+.info-popup .info-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+}
+
+.risk-pill {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.risk-high   { background: #FFEBEE; color: #C62828; }
+.risk-medium { background: #FFF8E1; color: #E65100; }
+.risk-low    { background: #E8F5E9; color: #2E7D32; }

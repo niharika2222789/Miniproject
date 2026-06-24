@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Vulnerability Mapping System — Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=IBM+Plex+Sans:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Reset ── */
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html, body { height:100%; overflow:hidden; font-family:'IBM Plex Sans', sans-serif; background:#f5f2ed; }
+
+    /* ══════════════════════════════════
+       TOP BAR
+    ══════════════════════════════════ */
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fff;
+      border-bottom: 1px solid #e8e2d8;
+      padding: 0 24px;
+      height: 58px;
+      flex-shrink: 0;
+      gap: 16px;
+    }
+
+    /* Brand */
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: #D32F2F;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 14px; flex-shrink: 0;
+    }
+
+    .brand-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a1a1a;
+      white-space: nowrap;
+    }
+
+    .brand-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #D32F2F;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    /* City select */
+    #citySelect {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: #1a1a1a;
+      background: #faf8f4;
+      border: 1px solid #e8e2d8;
+      border-radius: 6px;
+      padding: 7px 32px 7px 12px;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      transition: border-color 0.2s;
+    }
+
+    #citySelect:hover { border-color: #D32F2F; }
+
+    /* Emergency buttons */
+    .emergency {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .emergency button {
+      width: 38px; height: 38px;
+      border-radius: 8px;
+      border: 1px solid #e8e2d8;
+      background: #faf8f4;
+      font-size: 17px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .emergency button:hover { background: #FFF5F5; border-color: #FFCDD2; transform: translateY(-1px); }
+    .emergency button:active { transform: translateY(0); }
+
+    .emergency button .btn-label {
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 8px;
+      color: #999;
+      white-space: nowrap;
+    }
+
+    .emergency-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+
+    .emergency-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* Filters in topbar */
+    .filters {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .filters span {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: #bbb;
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+
+    .filter-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 20px;
+      border: 1px solid #e8e2d8;
+      background: #faf8f4;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 5px;
+    }
+
+    .filter-btn:hover { border-color: #D32F2F; color: #D32F2F; }
+    .filter-btn.active { background: #D32F2F; border-color: #D32F2F; color: #fff; }
+
+    .filter-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ══════════════════════════════════
+       BODY LAYOUT
+    ══════════════════════════════════ */
+    .body-wrap {
+      display: flex;
+      height: calc(100vh - 58px);
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════
+       SIDEBAR
+    ══════════════════════════════════ */
+    .sidebar {
+      width: 210px;
+      flex-shrink: 0;
+      background: #fff;
+      border-right: 1px solid #e8e2d8;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 0;
+      gap: 2px;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #ccc;
+      text-transform: uppercase;
+      padding: 10px 20px 4px;
+    }
+
+    .sidebar button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      background: none;
+      border: none;
+      padding: 11px 20px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: #555;
+      text-align: left;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.18s;
+    }
+
+    .sidebar button:hover { background: #faf8f4; color: #1a1a1a; }
+
+    .sidebar button.active {
+      background: #FFF5F5;
+      color: #D32F2F;
+      border-left-color: #D32F2F;
+      font-weight: 600;
+    }
+
+    .sidebar-icon { font-size: 15px; width: 18px; text-align: center; }
+
+    .sidebar-divider {
+      height: 1px;
+      background: #f0ebe0;
+      margin: 8px 16px;
+    }
+
+    /* Live indicator in sidebar */
+    .live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: auto 0 0;
+      padding: 14px 20px;
+      border-top: 1px solid #f0ebe0;
+    }
+
+    .live-dot {
+      width: 7px; height: 7px;
+      background: #D32F2F;
+      border-radius: 50%;
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:0.4; transform:scale(1.4); }
+    }
+
+    .live-text {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: #D32F2F;
+      letter-spacing: 1px;
+    }
+
+    /* ══════════════════════════════════
+       MAP
+    ══════════════════════════════════ */
+    #map {
+      flex: 1;
+      height: 100%;
+      min-height: 300px;
+    }
+
+    /* ══════════════════════════════════
+       ALERT TOAST (bottom-right)
+    ══════════════════════════════════ */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: #fff;
+      border: 1px solid #FFCDD2;
+      border-left: 3px solid #D32F2F;
+      border-radius: 8px;
+      padding: 12px 16px;
+      min-width: 260px;
+      box-shadow: 0 4px 20px rgba(211,47,47,0.12);
+      z-index: 1000;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.35s ease;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity:1; transform:translateY(0); pointer-events:all; }
+
+    .toast-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: #D32F2F;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .toast-title { font-size: 13px; font-weight: 600; color: #1a1a1a; margin-bottom: 2px; }
+    .toast-meta  { font-size: 11px; color: #E57373; font-family: 'IBM Plex Mono', monospace; }
+
+    /* ══════════════════════════════════
+       EMERGENCY MODAL
+    ══════════════════════════════════ */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(26,26,26,0.4);
+      backdrop-filter: blur(3px);
+      z-index: 2000;
+      display: none;
+      align-items: center; justify-content: center;
+    }
+
+    .modal-backdrop.open { display:flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 28px 28px 24px;
+      min-width: 320px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+      animation: popIn 0.25s ease;
+    }
+
+    @keyframes popIn {
+      from { transform:scale(0.92); opacity:0; }
+      to   { transform:scale(1); opacity:1; }
+    }
+
+    .modal-icon { font-size: 2.5rem; margin-bottom: 10px; text-align: center; }
+    .modal-title { font-family: 'Playfair Display', serif; font-size: 22px; color: #1a1a1a; text-align: center; margin-bottom: 4px; }
+    .modal-sub   { font-size: 13px; color: #888; text-align: center; margin-bottom: 20px; font-family: 'IBM Plex Mono', monospace; }
+
+    .modal-number {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      background: #faf8f4;
+      border: 1px solid #e8e2d8;
+      border-radius: 8px;
+      padding: 14px 20px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1.8rem;
+      font-weight: 500;
+      color: #1a1a1a;
+      margin-bottom: 16px;
+      letter-spacing: 3px;
+    }
+
+    .modal-call-btn {
+      width: 100%;
+      background: #D32F2F;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 13px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .modal-call-btn:hover { background: #B71C1C; }
+
+    .modal-close {
+      width: 100%;
+      background: none;
+      border: 1px solid #e8e2d8;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 13px;
+      color: #888;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+    }
+
+    .modal-close:hover { border-color: #ccc; color: #555; }
+  </style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div class="topbar">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-icon">⚠</div>
+    <div>
+      <div class="brand-name">Vulnerability Mapping</div>
+      <div class="brand-sub">Disaster Preparedness Platform</div>
+    </div>
+  </div>
+
+  <!-- City select -->
+  <select id="citySelect">
+    <option value="current">📍 Current Location</option>
+    <option value="hyderabad">Hyderabad</option>
+    <option value="delhi">Delhi</option>
+    <option value="mumbai">Mumbai</option>
+    <option value="chennai">Chennai</option>
+    <option value="jammu_kashmir">Jammu &amp; Kashmir</option>
+  </select>
+
+  <!-- Emergency buttons -->
+  <div class="emergency-wrap">
+    <div class="emergency-label">Emergency Services</div>
+    <div class="emergency">
+      <button onclick="openModal('ambulance')" title="Ambulance">🚑</button>
+      <button onclick="openModal('police')"    title="Police">🚓</button>
+      <button onclick="openModal('fire')"      title="Fire Brigade">🔥</button>
+      <button onclick="openModal('shelter')"   title="Nearest Shelter">🏠</button>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters">
+    <span>Filter:</span>
+    <button class="filter-btn active" onclick="setFilter(this,'all')">All</button>
+    <button class="filter-btn" onclick="setFilter(this,'High')">
+      <span class="filter-dot" style="background:#E53935;"></span>High
+    </button>
+    <button class="filter-btn" onclick="setFilter(this,'Medium')">
+      <span class="filter-dot" style="background:#FB8C00;"></span>Medium
+    </button>
+    <button class="filter-btn" onclick="setFilter(this,'Low')">
+      <span class="filter-dot" style="background:#43A047;"></span>Low
+    </button>
+  </div>
+
+</div>
+
+<!-- ══ BODY ══ -->
+<div class="body-wrap">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">Navigation</div>
+
+    <button class="active">
+      <span class="sidebar-icon">🗺</span> Dashboard
+    </button>
+    <button onclick="window.location.href='ai.html'">
+      <span class="sidebar-icon">🤖</span> AI Intelligence
+    </button>
+    <button onclick="window.location.href='emergency.html'">
+      <span class="sidebar-icon">🚨</span> Emergency Response
+    </button>
+    <button onclick="window.location.href='analytics.html'">
+      <span class="sidebar-icon">📊</span> Risk Analytics
+    </button>
+
+    <div class="sidebar-divider"></div>
+    <div class="sidebar-section">Records</div>
+
+    <button onclick="window.location.href='history.html'">
+      <span class="sidebar-icon">📜</span> Disaster History
+    </button>
+    
+
+    <!-- Live indicator -->
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span class="live-text">SYSTEMS LIVE</span>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="map"></div>
+
+</div>
+
+<!-- ══ ALERT TOAST ══ -->
+<div class="toast" id="toast">
+  <div class="toast-label"><span style="background:#D32F2F;width:6px;height:6px;border-radius:50%;display:inline-block;"></span> ACTIVE ALERT</div>
+  <div class="toast-title" id="toastTitle">Flash flood warning — Dharavi, Mumbai</div>
+  <div class="toast-meta"  id="toastMeta">Issued 14 min ago · Teams dispatched</div>
+</div>
+
+<!-- ══ EMERGENCY MODAL ══ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-icon" id="modalIcon">🚑</div>
+    <div class="modal-title" id="modalTitle">Ambulance</div>
+    <div class="modal-sub"  id="modalSub">National Emergency Helpline</div>
+    <div class="modal-number" id="modalNumber">108</div>
+    <button class="modal-call-btn" id="modalCallBtn" onclick="callNumber()">📞 Call Now</button>
+    <button class="modal-close" onclick="document.getElementById('modalBackdrop').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script async defer
+  src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDEsoAh1qiM4Gq9n8WTCTraUq4ESaWLC10&callback=initMap&libraries=places">
+</script>
+
+<script>
+  /* ── Filter buttons ── */
+  function setFilter(btn, level) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterMarkers(level);
+  }
+
+  /* ── Emergency modal data ── */
+  const EMERGENCY = {
+    ambulance: { icon:'🚑', title:'Ambulance',      sub:'National Emergency Helpline', number:'108' },
+    police:    { icon:'🚓', title:'Police',          sub:'National Police Helpline',    number:'100' },
+    fire:      { icon:'🔥', title:'Fire Brigade',    sub:'National Fire Helpline',       number:'101' },
+    shelter:   { icon:'🏠', title:'Nearest Shelter', sub:'Disaster Relief Helpline',     number:'1078' },
+  };
+
+  let activeNumber = '';
+
+  function openModal(type) {
+    const d = EMERGENCY[type];
+    document.getElementById('modalIcon').textContent   = d.icon;
+    document.getElementById('modalTitle').textContent  = d.title;
+    document.getElementById('modalSub').textContent    = d.sub;
+    document.getElementById('modalNumber').textContent = d.number;
+    activeNumber = d.number;
+    document.getElementById('modalBackdrop').classList.add('open');
+  }
+
+  function closeModal(e) {
+    if (e.target === document.getElementById('modalBackdrop'))
+      document.getElementById('modalBackdrop').classList.remove('open');
+  }
+
+  function callNumber() {
+    window.location.href = 'tel:' + activeNumber;
+  }
+
+  /* ── Rotating alert toasts ── */
+  const ALERTS = [
+    { title:'Flash flood warning — Dharavi, Mumbai',       meta:'Issued 14 min ago · Teams dispatched' },
+    { title:'Extreme heat advisory — Govindpuri, Delhi',   meta:'Issued 3 min ago · Cooling centers open' },
+    { title:'Landslide risk — Kurla hillside settlements', meta:'Issued 28 min ago · Evacuation advised' },
+    { title:'Heat emergency — Hyderabad slum zones',       meta:'Temp: 36°C · Health teams mobilised' },
+    { title:'Fire hazard alert — Shivaji Nagar, Pune',     meta:'Issued 42 min ago · Fire brigade en route' },
+    { title:'Cyclone warning — Chennai coastal slums',     meta:'Issued 20 min ago · Evacuation in progress' },
+  ];
+
+  let alertIdx = 0;
+  const toast = document.getElementById('toast');
+
+  function showToast() {
+    const a = ALERTS[alertIdx % ALERTS.length];
+    document.getElementById('toastTitle').textContent = a.title;
+    document.getElementById('toastMeta').textContent  = a.meta;
+    toast.classList.add('show');
+    setTimeout(() => { toast.classList.remove('show'); }, 4500);
+    alertIdx++;
+  }
+
+  setTimeout(() => {
+    showToast();
+    setInterval(showToast, 7000);
+  }, 2000);
+   src="live_alerts.js"</script>
+</script>
+</body>
+</html>
