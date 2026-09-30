@@ -12,6 +12,7 @@ FastAPI application — ties everything together.
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import asyncio
@@ -171,6 +172,7 @@ async def chat(request: Request):
             media_type='text/event-stream',
             headers={'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*'}
         )
-      from fastapi.staticfiles import StaticFiles
-
-app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="frontend")
+      
+app.mount("/", 
+StaticFiles(directory=BASE_DIR, html=True), 
+name="frontend")
