@@ -11,7 +11,7 @@ FastAPI application — ties everything together.
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import StreamingResponse, JSONResponse, FileResponse
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 import asyncio
@@ -21,6 +21,7 @@ from weather import fetch_weather, build_weather_context
 from ai_assistant import build_prompt, call_gemini_full, server_smart_fallback, stream_text, GEMINI_KEY
 from alerts import refresh_all_alerts, get_all_alerts
 from database import Base, engine
+from pathlib import Path
 
 load_dotenv()
 
@@ -67,10 +68,11 @@ app.add_middleware(
 )
 
 
+BASE_DIR = Path(__file__).resolve().parent
+
 @app.get('/')
 async def root():
-    provider = 'gemini' if GEMINI_KEY else 'rule-based fallback'
-    return {'status': 'Backend is running', 'provider': provider}
+    return FileResponse(BASE_DIR / 'index.html')
 
 
 @app.get('/api/stats')
@@ -169,3 +171,6 @@ async def chat(request: Request):
             media_type='text/event-stream',
             headers={'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*'}
         )
+      from fastapi.staticfiles import StaticFiles
+
+app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="frontend")
